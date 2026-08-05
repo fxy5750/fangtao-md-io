@@ -167,13 +167,6 @@ final class FTMZI_Importer {
 			);
 		}
 
-		if ( 'zip' === $extension && ! class_exists( 'ZipArchive' ) ) {
-			return new WP_Error(
-				'ftmzi_zip_extension',
-				__( '服务器未启用 PHP ZIP 扩展。', 'fangtao-markdown-zip-importer' )
-			);
-		}
-
 		return $extension;
 	}
 
@@ -185,6 +178,21 @@ final class FTMZI_Importer {
 	 * @return array|WP_Error
 	 */
 	private function extract_archive( $zip_path, $temp_dir ) {
+		if ( class_exists( 'ZipArchive' ) ) {
+			return $this->extract_archive_ziparchive( $zip_path, $temp_dir );
+		}
+
+		return $this->extract_archive_wordpress( $zip_path, $temp_dir );
+	}
+
+	/**
+	 * Extract supported entries with the PHP ZIP extension.
+	 *
+	 * @param string $zip_path ZIP file path.
+	 * @param string $temp_dir Temporary extraction directory.
+	 * @return array|WP_Error
+	 */
+	private function extract_archive_ziparchive( $zip_path, $temp_dir ) {
 		$zip  = new ZipArchive();
 		$open = $zip->open( $zip_path );
 
@@ -347,6 +355,192 @@ final class FTMZI_Importer {
 
 		return array(
 			'files'    => $files,
+			'markdown' => array_values( $markdown_files ),
+		);
+	}
+
+	/**
+	 * Extract an archive through WordPress and its bundled PclZip fallback.
+	 *
+	 * @param string $zip_path ZIP file path.
+	 * @param string $temp_dir Temporary extraction directory.
+	 * @return array|WP_Error
+	 */
+	private function extract_archive_wordpress( $zip_path, $temp_dir ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
+
+		$zip     = new PclZip( $zip_path );
+		$entries = $zip->listContent();
+
+		if ( ! is_array( $entries ) || empty( $entries ) ) {
+			return new WP_Error(
+				'ftmzi_invalid_archive',
+				__( '无法打开 ZIP 文件，文件可能已损坏或不是有效压缩包。', 'fangtao-markdown-zip-importer' )
+			);
+		}
+
+		if ( count( $entries ) > self::MAX_ARCHIVE_ENTRIES ) {
+			return new WP_Error(
+				'ftmzi_archive_entries',
+				__( 'ZIP 内文件数量不能超过 500 个。', 'fangtao-markdown-zip-importer' )
+			);
+		}
+
+		$expected_files = array();
+		$markdown_files = array();
+		$total_size     = 0;
+		$allowed_images = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' );
+		$allowed_docs   = array( 'md', 'markdown' );
+
+		foreach ( $entries as $entry ) {
+			if ( empty( $entry['filename'] ) || ! empty( $entry['folder'] ) ) {
+				continue;
+			}
+
+			$original_path = str_replace( '\\', '/', $entry['filename'] );
+
+			if ( 0 === strpos( $original_path, '__MACOSX/' ) ) {
+				continue;
+			}
+
+			$archive_path = $this->normalize_archive_path( $original_path );
+
+			if ( false === $archive_path || $archive_path !== ltrim( $original_path, './' ) ) {
+				return new WP_Error(
+					'ftmzi_unsafe_path',
+					__( 'ZIP 包含不安全的文件路径，导入已停止。', 'fangtao-markdown-zip-importer' )
+				);
+			}
+
+			if (
+				isset( $entry['external'] ) &&
+				0120000 === ( ( (int) $entry['external'] >> 16 ) & 0170000 )
+			) {
+				return new WP_Error(
+					'ftmzi_archive_symlink',
+					__( 'ZIP 包含符号链接，导入已停止。', 'fangtao-markdown-zip-importer' )
+				);
+			}
+
+			$extension = strtolower( pathinfo( $archive_path, PATHINFO_EXTENSION ) );
+
+			if ( ! in_array( $extension, array_merge( $allowed_docs, $allowed_images ), true ) ) {
+				continue;
+			}
+
+			$file_size  = isset( $entry['size'] ) ? (int) $entry['size'] : 0;
+			$size_limit = in_array( $extension, $allowed_docs, true ) ? self::MAX_MARKDOWN_SIZE : self::MAX_IMAGE_SIZE;
+
+			if ( $file_size > $size_limit ) {
+				return new WP_Error(
+					'ftmzi_entry_size',
+					sprintf(
+						/* translators: %s: archive path. */
+						__( '文件过大，无法导入：%s', 'fangtao-markdown-zip-importer' ),
+						$archive_path
+					)
+				);
+			}
+
+			$total_size += $file_size;
+
+			if ( $total_size > self::MAX_EXTRACTED_SIZE ) {
+				return new WP_Error(
+					'ftmzi_extracted_size',
+					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-markdown-zip-importer' )
+				);
+			}
+
+			$expected_files[ $archive_path ] = trailingslashit( $temp_dir ) . str_replace( '/', DIRECTORY_SEPARATOR, $archive_path );
+
+			if ( in_array( $extension, $allowed_docs, true ) ) {
+				$markdown_files[] = $archive_path;
+			}
+		}
+
+		if ( empty( $markdown_files ) ) {
+			return new WP_Error(
+				'ftmzi_no_markdown',
+				__( 'ZIP 中没有找到 .md 或 .markdown 文件。', 'fangtao-markdown-zip-importer' )
+			);
+		}
+
+		global $wp_filesystem;
+
+		if ( ! $wp_filesystem && ! WP_Filesystem() ) {
+			return new WP_Error(
+				'ftmzi_filesystem',
+				__( 'WordPress 无法访问临时解压目录。', 'fangtao-markdown-zip-importer' )
+			);
+		}
+
+		$disable_ziparchive = static function () {
+			return false;
+		};
+
+		add_filter( 'unzip_file_use_ziparchive', $disable_ziparchive, PHP_INT_MAX );
+
+		try {
+			$unzipped = unzip_file( $zip_path, $temp_dir );
+		} finally {
+			remove_filter( 'unzip_file_use_ziparchive', $disable_ziparchive, PHP_INT_MAX );
+		}
+
+		if ( is_wp_error( $unzipped ) ) {
+			return new WP_Error(
+				'ftmzi_extract_file',
+				sprintf(
+					/* translators: %s: WordPress unzip error. */
+					__( 'WordPress 无法解压 ZIP：%s', 'fangtao-markdown-zip-importer' ),
+					$unzipped->get_error_message()
+				)
+			);
+		}
+
+		$actual_total = 0;
+
+		foreach ( $expected_files as $archive_path => $destination ) {
+			if ( ! is_readable( $destination ) ) {
+				return new WP_Error(
+					'ftmzi_extract_file',
+					sprintf(
+						/* translators: %s: archive path. */
+						__( '无法解压文件：%s', 'fangtao-markdown-zip-importer' ),
+						$archive_path
+					)
+				);
+			}
+
+			$extension   = strtolower( pathinfo( $archive_path, PATHINFO_EXTENSION ) );
+			$size_limit  = in_array( $extension, $allowed_docs, true ) ? self::MAX_MARKDOWN_SIZE : self::MAX_IMAGE_SIZE;
+			$actual_size = filesize( $destination );
+
+			if ( false === $actual_size || $actual_size > $size_limit ) {
+				return new WP_Error(
+					'ftmzi_entry_size',
+					sprintf(
+						/* translators: %s: archive path. */
+						__( '文件过大，无法导入：%s', 'fangtao-markdown-zip-importer' ),
+						$archive_path
+					)
+				);
+			}
+
+			$actual_total += $actual_size;
+
+			if ( $actual_total > self::MAX_EXTRACTED_SIZE ) {
+				return new WP_Error(
+					'ftmzi_extracted_size',
+					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-markdown-zip-importer' )
+				);
+			}
+		}
+
+		natcasesort( $markdown_files );
+
+		return array(
+			'files'    => $expected_files,
 			'markdown' => array_values( $markdown_files ),
 		);
 	}

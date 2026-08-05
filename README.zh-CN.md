@@ -23,8 +23,10 @@
 
 - WordPress 6.0 或更高版本
 - PHP 7.4 或更高版本
-- ZIP 导入和全部导出功能需要 PHP ZIP 扩展
+- ZIP 导入和导出优先使用 PHP ZIP；缺少该扩展时，两项功能都会回退到 WordPress 自带的 PclZip
+- 使用 PclZip 回退时需要 PHP zlib 扩展
 - HTML 转 Markdown 导出需要 PHP DOM 扩展
+- 建议启用原生 PHP mbstring 以获得更好性能；未启用时插件会使用内置兼容库
 - WordPress 上传目录必须可写
 
 上传文件的最大体积由 PHP 和 Web 服务器配置统一控制。
@@ -183,13 +185,17 @@ article-two-456/
 
 ## 常见问题
 
-### 为什么无法导入 ZIP？
+### 没有 PHP ZIP 扩展时可以导入 ZIP 吗？
 
-请启用 PHP ZIP 扩展。没有 ZIP 扩展时，仍可导入单个 `.md` 或 `.markdown` 文件。
+可以。导入器会优先使用 PHP ZIP 扩展；服务器未启用该扩展时，会自动改用 WordPress 自带的 PclZip。
+
+### 没有 PHP mbstring 扩展时可以导入 Markdown 吗？
+
+可以。插件已内置 mbstring 兼容库，服务器没有原生扩展时也能转换 Markdown。为了获得更好的性能，仍建议在条件允许时启用原生 mbstring。
 
 ### 为什么无法使用导出功能？
 
-导出功能同时依赖 PHP ZIP 和 DOM 扩展。
+HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 WordPress PclZip 与 PHP zlib 组成的回退方案。
 
 ### 为什么导入图片保存在本地而不是 OSS？
 
@@ -204,6 +210,20 @@ article-two-456/
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.2.0
+
+- 为单篇和批量 Markdown ZIP 导出增加 WordPress PclZip 回退。
+- 在不依赖 PHP ZIP 的情况下保持原有 `article.md` 和相对路径 `images/` 打包结构。
+
+### 1.1.3
+
+- 增加内置 mbstring 兼容库，修复服务器未启用 PHP mbstring 时 Markdown 转换失败的问题。
+
+### 1.1.2
+
+- 在服务器未启用 PHP ZIP 扩展时，增加 WordPress PclZip ZIP 导入回退。
+- 回退流程继续执行路径、文件数量和解压体积安全检查。
 
 ### 1.1.1
 

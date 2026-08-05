@@ -386,6 +386,7 @@ return array(
     'Psr\\EventDispatcher\\ListenerProviderInterface' => $vendorDir . '/psr/event-dispatcher/src/ListenerProviderInterface.php',
     'Psr\\EventDispatcher\\StoppableEventInterface' => $vendorDir . '/psr/event-dispatcher/src/StoppableEventInterface.php',
     'Stringable' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
+    'Symfony\\Polyfill\\Mbstring\\Mbstring' => $vendorDir . '/symfony/polyfill-mbstring/Mbstring.php',
     'Symfony\\Polyfill\\Php80\\Php80' => $vendorDir . '/symfony/polyfill-php80/Php80.php',
     'Symfony\\Polyfill\\Php80\\PhpToken' => $vendorDir . '/symfony/polyfill-php80/PhpToken.php',
     'UnhandledMatchError' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',

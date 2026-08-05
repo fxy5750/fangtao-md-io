@@ -5,7 +5,8 @@
   "license": "GPL-2.0-or-later",
   "require": {
     "php": ">=7.4",
-    "league/commonmark": "~2.9.0"
+    "league/commonmark": "~2.9.0",
+    "symfony/polyfill-mbstring": "^1.31"
   },
   "config": {
     "optimize-autoloader": true,

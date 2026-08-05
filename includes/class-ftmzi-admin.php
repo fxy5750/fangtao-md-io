@@ -372,8 +372,8 @@ final class FTMZI_Admin {
 			<?php $this->render_result( $result ); ?>
 
 			<?php if ( ! class_exists( 'ZipArchive' ) ) : ?>
-				<div class="notice notice-warning inline">
-					<p><?php esc_html_e( '服务器未启用 PHP ZIP 扩展，仍可导入 .md 或 .markdown 文件。', 'fangtao-markdown-zip-importer' ); ?></p>
+				<div class="notice notice-info inline">
+					<p><?php esc_html_e( '服务器未启用 PHP ZIP 扩展，ZIP 导入将使用 WordPress 内置解压机制。', 'fangtao-markdown-zip-importer' ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -467,8 +467,16 @@ final class FTMZI_Admin {
 			</p>
 
 			<?php if ( ! class_exists( 'ZipArchive' ) ) : ?>
-				<div class="notice notice-error inline">
-					<p><?php esc_html_e( '服务器未启用 PHP ZIP 扩展，无法使用导出功能。', 'fangtao-markdown-zip-importer' ); ?></p>
+				<div class="notice <?php echo extension_loaded( 'zlib' ) ? 'notice-info' : 'notice-error'; ?> inline">
+					<p>
+						<?php
+						if ( extension_loaded( 'zlib' ) ) {
+							esc_html_e( '服务器未启用 PHP ZIP 扩展，ZIP 导出将使用 WordPress 内置 PclZip。', 'fangtao-markdown-zip-importer' );
+						} else {
+							esc_html_e( '服务器未启用 PHP ZIP 或 zlib 扩展，无法创建压缩包。', 'fangtao-markdown-zip-importer' );
+						}
+						?>
+					</p>
 				</div>
 			<?php endif; ?>
 

@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.1
+Stable tag: 1.2.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -58,7 +58,7 @@ For Simplified Chinese documentation, see `README.zh-CN.md`.
 
 = What are the server requirements? =
 
-The plugin requires WordPress 6.0 or later and PHP 7.4 or later. ZIP import and export require the PHP ZIP extension. Export also requires the PHP DOM extension.
+The plugin requires WordPress 6.0 or later and PHP 7.4 or later. ZIP import and export fall back to the PclZip library bundled with WordPress when the PHP ZIP extension is unavailable. The PclZip fallback requires PHP zlib. Markdown conversion uses a bundled compatibility layer when native PHP mbstring is unavailable. HTML-to-Markdown export requires the PHP DOM extension.
 
 = How should I package local images? =
 
@@ -94,6 +94,20 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.2.0 =
+
+* Added a WordPress PclZip fallback for individual and bulk Markdown ZIP exports.
+* Preserved the existing `article.md` and relative `images/` package structure without requiring PHP ZIP.
+
+= 1.1.3 =
+
+* Added a bundled mbstring compatibility layer for Markdown conversion on servers without the PHP mbstring extension.
+
+= 1.1.2 =
+
+* Added a WordPress PclZip fallback for ZIP imports when the PHP ZIP extension is unavailable.
+* Kept archive path, entry count, and extracted-size checks on the fallback path.
 
 = 1.1.1 =
 

@@ -23,8 +23,10 @@ Fangtao Markdown Import & Export is a WordPress plugin for moving content betwee
 
 - WordPress 6.0 or later
 - PHP 7.4 or later
-- PHP ZIP extension for ZIP import and all export operations
+- PHP ZIP is preferred for ZIP import and export; both operations fall back to the WordPress-bundled PclZip library when it is unavailable
+- PHP zlib extension when the PclZip fallback is used
 - PHP DOM extension for HTML-to-Markdown export
+- Native PHP mbstring is recommended for performance; a bundled compatibility layer is used when it is unavailable
 - A writable WordPress uploads directory
 
 The maximum upload size is controlled by the PHP and web server configuration.
@@ -183,13 +185,17 @@ The importer applies the following safeguards:
 
 ## Frequently Asked Questions
 
-### Why is ZIP import unavailable?
+### Can I import ZIP files without the PHP ZIP extension?
 
-Enable the PHP ZIP extension. Standalone `.md` and `.markdown` imports remain available without it.
+Yes. The importer prefers the PHP ZIP extension and falls back to the PclZip library bundled with WordPress when that extension is unavailable.
+
+### Can I import Markdown without the PHP mbstring extension?
+
+Yes. The plugin includes an mbstring compatibility layer for servers without the native extension. Enabling native mbstring is still recommended for better performance.
 
 ### Why is export unavailable?
 
-Export requires both the PHP ZIP and DOM extensions.
+HTML-to-Markdown export requires the PHP DOM extension. Creating the ZIP requires either PHP ZIP or the WordPress PclZip fallback with PHP zlib.
 
 ### Why was an imported image stored locally instead of OSS?
 
@@ -204,6 +210,20 @@ Only images bundled inside the uploaded ZIP are imported. Remote image URLs are 
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.2.0
+
+- Added a WordPress PclZip fallback for individual and bulk Markdown ZIP exports.
+- Preserved the existing `article.md` and relative `images/` package structure without requiring PHP ZIP.
+
+### 1.1.3
+
+- Added a bundled mbstring compatibility layer for Markdown conversion on servers without the PHP mbstring extension.
+
+### 1.1.2
+
+- Added a WordPress PclZip fallback for ZIP imports when the PHP ZIP extension is unavailable.
+- Kept archive path, entry count, and extracted-size checks on the fallback path.
 
 ### 1.1.1
 

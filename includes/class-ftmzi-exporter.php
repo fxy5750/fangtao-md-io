@@ -14,9 +14,23 @@ final class FTMZI_Exporter {
 	/**
 	 * Active ZIP archive.
 	 *
-	 * @var ZipArchive
+	 * @var ZipArchive|PclZip|null
 	 */
 	private $zip;
+
+	/**
+	 * Active archive engine.
+	 *
+	 * @var string
+	 */
+	private $archive_engine = '';
+
+	/**
+	 * Entries queued for the WordPress PclZip fallback.
+	 *
+	 * @var array<int, array>
+	 */
+	private $pclzip_entries = array();
 
 	/**
 	 * Current article directory inside the archive.
@@ -46,13 +60,6 @@ final class FTMZI_Exporter {
 	 * @return array{path: string, filename: string}|WP_Error
 	 */
 	public function create_archive( $post_ids ) {
-		if ( ! class_exists( 'ZipArchive' ) ) {
-			return new WP_Error(
-				'ftmzi_export_zip_extension',
-				__( '服务器未启用 PHP ZIP 扩展，无法导出压缩包。', 'fangtao-markdown-zip-importer' )
-			);
-		}
-
 		if ( ! class_exists( 'DOMDocument' ) ) {
 			return new WP_Error(
 				'ftmzi_export_dom_extension',
@@ -87,16 +94,11 @@ final class FTMZI_Exporter {
 			);
 		}
 
-		$this->zip = new ZipArchive();
-		$opened    = $this->zip->open( $temp_file, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+		$opened = $this->open_archive( $temp_file );
 
-		if ( true !== $opened ) {
+		if ( is_wp_error( $opened ) ) {
 			@unlink( $temp_file );
-
-			return new WP_Error(
-				'ftmzi_export_open',
-				__( '无法创建 ZIP 压缩包。', 'fangtao-markdown-zip-importer' )
-			);
+			return $opened;
 		}
 
 		$is_batch = count( $posts ) > 1;
@@ -106,13 +108,13 @@ final class FTMZI_Exporter {
 			$result = $this->add_post( $post, $prefix );
 
 			if ( is_wp_error( $result ) ) {
-				$this->zip->close();
+				$this->discard_archive();
 				@unlink( $temp_file );
 				return $result;
 			}
 		}
 
-		if ( ! $this->zip->close() ) {
+		if ( ! $this->close_archive() ) {
 			@unlink( $temp_file );
 
 			return new WP_Error(
@@ -132,6 +134,142 @@ final class FTMZI_Exporter {
 	}
 
 	/**
+	 * Open the preferred ZIP writer.
+	 *
+	 * @param string $temp_file Temporary archive path.
+	 * @return true|WP_Error
+	 */
+	private function open_archive( $temp_file ) {
+		$this->archive_engine = '';
+		$this->pclzip_entries = array();
+
+		if ( class_exists( 'ZipArchive' ) ) {
+			$this->zip = new ZipArchive();
+			$opened    = $this->zip->open( $temp_file, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+
+			if ( true !== $opened ) {
+				return new WP_Error(
+					'ftmzi_export_open',
+					__( '无法创建 ZIP 压缩包。', 'fangtao-markdown-zip-importer' )
+				);
+			}
+
+			$this->archive_engine = 'ziparchive';
+			return true;
+		}
+
+		if ( ! extension_loaded( 'zlib' ) ) {
+			return new WP_Error(
+				'ftmzi_export_zlib_extension',
+				__( '服务器未启用 PHP ZIP 或 zlib 扩展，无法创建压缩包。', 'fangtao-markdown-zip-importer' )
+			);
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
+
+		@unlink( $temp_file );
+		$this->zip            = new PclZip( $temp_file );
+		$this->archive_engine = 'pclzip';
+
+		return true;
+	}
+
+	/**
+	 * Add an empty directory to the active archive.
+	 *
+	 * @param string $archive_path Archive-relative directory path.
+	 * @return bool
+	 */
+	private function add_archive_directory( $archive_path ) {
+		$archive_path = trailingslashit( $archive_path );
+
+		if ( 'ziparchive' === $this->archive_engine ) {
+			return $this->zip->addEmptyDir( $archive_path );
+		}
+
+		$this->pclzip_entries[] = array(
+			PCLZIP_ATT_FILE_NAME    => $archive_path,
+			PCLZIP_ATT_FILE_CONTENT => '',
+		);
+
+		return true;
+	}
+
+	/**
+	 * Add string content to the active archive.
+	 *
+	 * @param string $archive_path Archive-relative file path.
+	 * @param string $content      File content.
+	 * @return bool
+	 */
+	private function add_archive_string( $archive_path, $content ) {
+		if ( 'ziparchive' === $this->archive_engine ) {
+			return $this->zip->addFromString( $archive_path, $content );
+		}
+
+		$this->pclzip_entries[] = array(
+			PCLZIP_ATT_FILE_NAME    => $archive_path,
+			PCLZIP_ATT_FILE_CONTENT => $content,
+		);
+
+		return true;
+	}
+
+	/**
+	 * Add a local file to the active archive.
+	 *
+	 * @param string $source_path  Local source path.
+	 * @param string $archive_path Archive-relative file path.
+	 * @return bool
+	 */
+	private function add_archive_file( $source_path, $archive_path ) {
+		if ( 'ziparchive' === $this->archive_engine ) {
+			return $this->zip->addFile( $source_path, $archive_path );
+		}
+
+		$this->pclzip_entries[] = array(
+			PCLZIP_ATT_FILE_NAME          => $source_path,
+			PCLZIP_ATT_FILE_NEW_FULL_NAME => $archive_path,
+		);
+
+		return true;
+	}
+
+	/**
+	 * Finish writing the active archive.
+	 *
+	 * @return bool
+	 */
+	private function close_archive() {
+		if ( 'ziparchive' === $this->archive_engine ) {
+			$result = $this->zip->close();
+		} else {
+			$result = ! empty( $this->pclzip_entries ) && 0 !== $this->zip->create( $this->pclzip_entries );
+		}
+
+		$this->zip = null;
+		$this->archive_engine = '';
+		$this->pclzip_entries = array();
+
+		return (bool) $result;
+	}
+
+	/**
+	 * Discard the active archive after a content conversion error.
+	 *
+	 * @return void
+	 */
+	private function discard_archive() {
+		if ( 'ziparchive' === $this->archive_engine && $this->zip ) {
+			$this->zip->close();
+		}
+
+		$this->zip            = null;
+		$this->archive_engine = '';
+		$this->pclzip_entries = array();
+	}
+
+	/**
 	 * Add one post and its images to the ZIP.
 	 *
 	 * @param WP_Post $post   Post object.
@@ -143,7 +281,7 @@ final class FTMZI_Exporter {
 		$this->image_map      = array();
 		$this->image_names    = array();
 
-		$this->zip->addEmptyDir( $prefix . 'images' );
+		$this->add_archive_directory( $prefix . 'images' );
 
 		$html     = has_blocks( $post->post_content ) ? do_blocks( $post->post_content ) : wpautop( $post->post_content );
 		$html     = do_shortcode( $html );
@@ -181,7 +319,7 @@ final class FTMZI_Exporter {
 		$front_matter[] = '---';
 		$document       = implode( "\n", $front_matter ) . "\n\n" . trim( $markdown ) . "\n";
 
-		if ( ! $this->zip->addFromString( $prefix . 'article.md', $document ) ) {
+		if ( ! $this->add_archive_string( $prefix . 'article.md', $document ) ) {
 			return new WP_Error(
 				'ftmzi_export_markdown',
 				sprintf(
@@ -467,7 +605,7 @@ final class FTMZI_Exporter {
 		$this->image_names[ strtolower( $candidate ) ] = true;
 		$relative_path = 'images/' . $candidate;
 
-		if ( ! $this->zip->addFile( $file, $this->archive_prefix . $relative_path ) ) {
+		if ( ! $this->add_archive_file( $file, $this->archive_prefix . $relative_path ) ) {
 			return $this->escape_url( $source );
 		}
 
