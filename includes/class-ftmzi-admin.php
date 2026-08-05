@@ -345,7 +345,7 @@ final class FTMZI_Admin {
 	 * @return void
 	 */
 	public function handle_import() {
-		if ( ! current_user_can( 'edit_posts' ) ) {
+		if ( ! current_user_can( 'edit_posts' ) || ! current_user_can( 'upload_files' ) ) {
 			wp_die( esc_html__( '您没有导入文章的权限。', 'fangtao-md-io' ) );
 		}
 
@@ -462,7 +462,7 @@ final class FTMZI_Admin {
 	 * @return void
 	 */
 	public function render_page() {
-		if ( ! current_user_can( 'edit_posts' ) ) {
+		if ( ! current_user_can( 'edit_posts' ) || ! current_user_can( 'upload_files' ) ) {
 			return;
 		}
 

@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class FTMZI_Importer {
 
 	const MAX_EXTRACTED_SIZE    = 209715200;
+	const MAX_ARCHIVE_SIZE      = 209715200;
 	const MAX_ARCHIVE_ENTRIES   = 500;
 	const MAX_MARKDOWN_SIZE     = 2097152;
 	const MAX_IMAGE_SIZE        = 20971520;
@@ -178,6 +179,18 @@ final class FTMZI_Importer {
 			);
 		}
 
+		$actual_size = is_file( $upload['tmp_name'] ) ? filesize( $upload['tmp_name'] ) : false;
+		$size_limit  = 'zip' === $extension ? self::MAX_ARCHIVE_SIZE : self::MAX_MARKDOWN_SIZE;
+
+		if ( false === $actual_size || $actual_size > $size_limit ) {
+			return new WP_Error(
+				'ftmzi_upload_size',
+				'zip' === $extension
+					? __( 'ZIP 文件不能超过 200 MB。', 'fangtao-md-io' )
+					: __( 'Markdown 文件不能超过 2 MB。', 'fangtao-md-io' )
+			);
+		}
+
 		return $extension;
 	}
 
@@ -226,6 +239,7 @@ final class FTMZI_Importer {
 		$files          = array();
 		$markdown_files = array();
 		$total_size     = 0;
+		$actual_total   = 0;
 		$allowed_images = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' );
 		$allowed_docs   = self::DOCUMENT_EXTENSIONS;
 
@@ -347,6 +361,18 @@ final class FTMZI_Importer {
 				);
 			}
 
+			$actual_total += $copied_size;
+
+			if ( $actual_total > self::MAX_EXTRACTED_SIZE ) {
+				@unlink( $destination );
+				$zip->close();
+
+				return new WP_Error(
+					'ftmzi_extracted_size',
+					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-md-io' )
+				);
+			}
+
 			$files[ $archive_path ] = $destination;
 
 			if ( in_array( $extension, $allowed_docs, true ) ) {
@@ -399,6 +425,7 @@ final class FTMZI_Importer {
 		}
 
 		$expected_files = array();
+		$selected_files = array();
 		$markdown_files = array();
 		$total_size     = 0;
 		$allowed_images = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' );
@@ -464,6 +491,7 @@ final class FTMZI_Importer {
 			}
 
 			$expected_files[ $archive_path ] = trailingslashit( $temp_dir ) . str_replace( '/', DIRECTORY_SEPARATOR, $archive_path );
+			$selected_files[] = $entry['filename'];
 
 			if ( in_array( $extension, $allowed_docs, true ) ) {
 				$markdown_files[] = $archive_path;
@@ -477,34 +505,20 @@ final class FTMZI_Importer {
 			);
 		}
 
-		global $wp_filesystem;
+		$unzipped = $zip->extract(
+			PCLZIP_OPT_PATH,
+			$temp_dir,
+			PCLZIP_OPT_BY_NAME,
+			array_values( array_unique( $selected_files ) )
+		);
 
-		if ( ! $wp_filesystem && ! WP_Filesystem() ) {
-			return new WP_Error(
-				'ftmzi_filesystem',
-				__( 'WordPress 无法访问临时解压目录。', 'fangtao-md-io' )
-			);
-		}
-
-		$disable_ziparchive = static function () {
-			return false;
-		};
-
-		add_filter( 'unzip_file_use_ziparchive', $disable_ziparchive, PHP_INT_MAX );
-
-		try {
-			$unzipped = unzip_file( $zip_path, $temp_dir );
-		} finally {
-			remove_filter( 'unzip_file_use_ziparchive', $disable_ziparchive, PHP_INT_MAX );
-		}
-
-		if ( is_wp_error( $unzipped ) ) {
+		if ( 0 === $unzipped || ! is_array( $unzipped ) ) {
 			return new WP_Error(
 				'ftmzi_extract_file',
 				sprintf(
-					/* translators: %s: WordPress unzip error. */
+					/* translators: %s: PclZip error. */
 					__( 'WordPress 无法解压 ZIP：%s', 'fangtao-md-io' ),
-					$unzipped->get_error_message()
+					$zip->errorInfo( true )
 				)
 			);
 		}
@@ -512,7 +526,7 @@ final class FTMZI_Importer {
 		$actual_total = 0;
 
 		foreach ( $expected_files as $archive_path => $destination ) {
-			if ( ! is_readable( $destination ) ) {
+			if ( is_link( $destination ) || ! is_readable( $destination ) ) {
 				return new WP_Error(
 					'ftmzi_extract_file',
 					sprintf(
@@ -897,21 +911,46 @@ final class FTMZI_Importer {
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 
-		$temp_file = download_url( $url, 20 );
+		$temp_file = wp_tempnam( 'ftmzi-remote-image' );
 
-		if ( is_wp_error( $temp_file ) ) {
+		if ( ! $temp_file ) {
+			return new WP_Error( 'ftmzi_remote_image_temp', __( '无法创建远程图片临时文件。', 'fangtao-md-io' ) );
+		}
+
+		$response = wp_safe_remote_get(
+			$url,
+			array(
+				'timeout'             => 20,
+				'stream'              => true,
+				'filename'            => $temp_file,
+				'limit_response_size' => self::MAX_IMAGE_SIZE + 1,
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			$error_message = is_wp_error( $response )
+				? $response->get_error_message()
+				: sprintf(
+					/* translators: %d: HTTP response code. */
+					__( 'HTTP 状态码 %d', 'fangtao-md-io' ),
+					wp_remote_retrieve_response_code( $response )
+				);
+			@unlink( $temp_file );
+
 			return new WP_Error(
 				'ftmzi_remote_image_download',
 				sprintf(
 					/* translators: 1: image URL, 2: download error. */
 					__( '远程图片下载失败（%1$s）：%2$s', 'fangtao-md-io' ),
 					$url,
-					$temp_file->get_error_message()
+					$error_message
 				)
 			);
 		}
 
-		if ( filesize( $temp_file ) > self::MAX_IMAGE_SIZE ) {
+		$remote_size = filesize( $temp_file );
+
+		if ( false === $remote_size || $remote_size > self::MAX_IMAGE_SIZE ) {
 			@unlink( $temp_file );
 			return new WP_Error( 'ftmzi_remote_image_size', __( '远程图片超过 20 MB 限制。', 'fangtao-md-io' ) );
 		}

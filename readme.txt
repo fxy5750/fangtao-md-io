@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ Fangtao MD IO provides a focused workflow for moving content between Markdown fi
 
 = Import =
 
-* Import `.md`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`, `.mdwn`, `.mdtxt`, `.mdtext`, `.文本`, and `.txt` files case-insensitively.
+* Supported Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
 * Import ZIP archives containing multiple Markdown documents.
 * Import JPG, JPEG, PNG, GIF, WebP, and AVIF images referenced with relative paths.
 * Add imported local images to the WordPress Media Library.
@@ -103,6 +103,11 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.6.1 =
+
+* Hardened ZIP extraction, upload and download size enforcement, import capabilities, and local image export path validation.
+* Updated Parsedown to 1.8.0 to address a reported regular-expression denial-of-service issue.
 
 = 1.6.0 =
 

@@ -1,12 +1,14 @@
+![fangtao-markdown-zip-importer_banner_2172x724](./fangtao-md-io_banner_2172x724.jpg)
+
 # Fangtao MD IO
 
-English | [Simplified Chinese](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md)
 
 Fangtao MD IO is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local images. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
 
 ## Features
 
-- Import `.md`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`, `.mdwn`, `.mdtxt`, `.mdtext`, `.文本`, and `.txt` files case-insensitively.
+- Supported Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
 - Import ZIP archives containing multiple Markdown documents.
 - Upload local images referenced with relative paths to the WordPress Media Library.
 - Replace imported local image references with WordPress attachment URLs.
@@ -240,6 +242,13 @@ No. Each imported Markdown document creates a new content item.
 
 ## Changelog
 
+### 1.6.1
+
+- Restricted ZIP fallback extraction to validated Markdown and image entries to prevent temporary-directory exhaustion from unrelated archive contents.
+- Enforced direct-upload, per-file, aggregate extraction, and remote-download size limits using actual bytes written.
+- Required Media Library upload permission for imports and blocked exported image paths that resolve outside the WordPress uploads directory.
+- Updated Parsedown from 1.7.4 to 1.8.0 to address a reported regular-expression denial-of-service issue.
+
 ### 1.6.0
 
 - Renamed the plugin, directory, main plugin file, admin page slugs, text domain, and Composer package to Fangtao MD IO (`fangtao-md-io`).
@@ -247,7 +256,7 @@ No. Each imported Markdown document creates a new content item.
 
 ### 1.5.1
 
-- Added case-insensitive import and export support for `.md`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`, `.mdwn`, `.mdtxt`, `.mdtext`, `.文本`, and `.txt` files, including documents inside ZIP archives.
+- Added import, ZIP detection, and export support for these Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
 
 ### 1.5.0
 

@@ -1,3 +1,5 @@
+![fangtao-markdown-zip-importer_banner_2172x724](./fangtao-md-io_banner_2172x724.jpg)
+
 # Fangtao MD IO
 
 [English](README.md) | 简体中文
@@ -6,7 +8,7 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 
 ## 功能特性
 
-- 导入 `.md`、`.markdown`、`.mdown`、`.mkdn`、`.mkd`、`.mdwn`、`.mdtxt`、`.mdtext`、`.文本` 和 `.txt` 文件，扩展名不区分大小写。
+- 支持以下 Markdown 文件扩展名（不区分大小写）：.md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt。
 - 导入包含多份 Markdown 文档的 ZIP 压缩包。
 - 将 Markdown 相对路径引用的本地图片导入 WordPress 媒体库。
 - 自动将正文中的本地图片引用替换为 WordPress 附件地址。
@@ -240,6 +242,13 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 
 ## 更新记录
 
+### 1.6.1
+
+- WordPress 备用 ZIP 解压现在只释放已校验的 Markdown 和图片，避免无关压缩内容耗尽临时磁盘。
+- 按实际写入字节执行直接上传、单文件、解压总量和远程下载大小限制。
+- 导入操作必须具备媒体库上传权限；导出时禁止读取 WordPress uploads 目录之外的本地文件。
+- Parsedown 从 1.7.4 升级至 1.8.0，修复已报告的正则表达式拒绝服务问题。
+
 ### 1.6.0
 
 - 插件名称、目录、主文件、后台页面 slug、文本域和 Composer 包名统一更名为 Fangtao MD IO（`fangtao-md-io`）。
@@ -247,7 +256,7 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 
 ### 1.5.1
 
-- 新增 `.md`、`.markdown`、`.mdown`、`.mkdn`、`.mkd`、`.mdwn`、`.mdtxt`、`.mdtext`、`.文本` 和 `.txt` 导入、ZIP 内识别与导出支持；扩展名不区分大小写。
+- 新增以下 Markdown 文件扩展名的导入、ZIP 内识别与导出支持（不区分大小写）：.md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt。
 
 ### 1.5.0
 

@@ -661,8 +661,8 @@ final class FTMZI_Exporter {
 		if ( $attachment_id ) {
 			$file = get_attached_file( $attachment_id );
 
-			if ( $file && is_file( $file ) ) {
-				return $file;
+			if ( $file && $this->is_upload_file( $file ) ) {
+				return realpath( $file );
 			}
 		}
 
@@ -674,12 +674,38 @@ final class FTMZI_Exporter {
 			$relative = rawurldecode( substr( $url, strlen( $baseurl ) + 1 ) );
 			$file     = trailingslashit( $basedir ) . str_replace( '/', DIRECTORY_SEPARATOR, $relative );
 
-			if ( is_file( $file ) ) {
-				return $file;
+			if ( $this->is_upload_file( $file ) ) {
+				return realpath( $file );
 			}
 		}
 
 		return '';
+	}
+
+	/**
+	 * Confirm that a local export source resolves inside the uploads directory.
+	 *
+	 * @param string $file Candidate file path.
+	 * @return bool
+	 */
+	private function is_upload_file( $file ) {
+		$uploads = wp_upload_dir();
+		$basedir = isset( $uploads['basedir'] ) ? realpath( $uploads['basedir'] ) : false;
+		$file    = realpath( $file );
+
+		if ( ! $basedir || ! $file || ! is_file( $file ) ) {
+			return false;
+		}
+
+		$basedir = trailingslashit( wp_normalize_path( $basedir ) );
+		$file    = wp_normalize_path( $file );
+
+		if ( '\\' === DIRECTORY_SEPARATOR ) {
+			$basedir = strtolower( $basedir );
+			$file    = strtolower( $file );
+		}
+
+		return 0 === strpos( $file, $basedir );
 	}
 
 	/**
