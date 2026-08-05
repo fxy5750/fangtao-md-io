@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -21,6 +21,8 @@ Fangtao Markdown Import & Export provides a focused workflow for moving content 
 * Import JPG, JPEG, PNG, GIF, WebP, and AVIF images referenced with relative paths.
 * Add imported local images to the WordPress Media Library.
 * Select the destination post type and post status.
+* Assign imported standard posts to an optional category.
+* Configure the default post status used by the import form.
 * Use supported Front Matter fields for the title, slug, excerpt, and featured image.
 
 = Export =
@@ -94,6 +96,11 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.3.0 =
+
+* Added an optional category selector when importing standard posts.
+* Added a persistent Draft or Publish immediately default for the import form.
 
 = 1.2.0 =
 

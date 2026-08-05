@@ -11,7 +11,8 @@ Fangtao Markdown Import & Export is a WordPress plugin for moving content betwee
 - Upload local images referenced with relative paths to the WordPress Media Library.
 - Replace imported local image references with WordPress attachment URLs.
 - Use the first imported local image as the featured image when no featured image is specified.
-- Choose the destination post type and post status.
+- Choose the destination post type, post status, and a category for standard posts.
+- Configure the default post status used by the import form.
 - Export a single post from its row action.
 - Export multiple posts from WordPress bulk actions.
 - Convert WordPress HTML and block content to GitHub Flavored Markdown.
@@ -52,10 +53,13 @@ Open **Markdown > Markdown Import**.
 
 1. Select a `.md`, `.markdown`, or `.zip` file.
 2. Choose the destination content type.
-3. Choose **Draft** or **Publish immediately**.
-4. Click **Upload and Import**.
+3. When importing standard posts, optionally choose a destination category.
+4. Choose **Draft** or **Publish immediately**.
+5. Click **Upload and Import**.
 
 Each Markdown file creates one WordPress content item. The import screen supports standard posts, pages, and public custom post types that the current user can edit.
+
+Administrators can set the import form's initial post status under **Import Settings**. This default can still be changed for each import.
 
 ### Standalone Markdown
 
@@ -210,6 +214,11 @@ Only images bundled inside the uploaded ZIP are imported. Remote image URLs are 
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.3.0
+
+- Added an optional category selector when importing standard posts.
+- Added a persistent Draft or Publish immediately default for the import form.
 
 ### 1.2.0
 

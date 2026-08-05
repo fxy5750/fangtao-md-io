@@ -49,6 +49,18 @@
 	gap: 16px;
 }
 
+.ftmzi-fields-row--import {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ftmzi-field[hidden] {
+	display: none;
+}
+
+.ftmzi-card h2 {
+	margin-top: 0;
+}
+
 .ftmzi-guide h2 {
 	margin-top: 0;
 }

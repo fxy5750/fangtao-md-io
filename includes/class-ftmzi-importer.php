@@ -43,9 +43,10 @@ final class FTMZI_Importer {
 	 * @param array  $upload      Uploaded file data.
 	 * @param string $post_type   Destination post type.
 	 * @param string $post_status Destination post status.
+	 * @param int    $category_id Destination category ID for posts.
 	 * @return array|WP_Error
 	 */
-	public function import( $upload, $post_type, $post_status ) {
+	public function import( $upload, $post_type, $post_status, $category_id = 0 ) {
 		$this->media_cache = array();
 		$extension         = $this->validate_upload( $upload );
 
@@ -62,7 +63,7 @@ final class FTMZI_Importer {
 				'markdown' => array( $markdown_path ),
 			);
 
-			return $this->import_documents( $archive, $post_type, $post_status );
+			return $this->import_documents( $archive, $post_type, $post_status, $category_id );
 		}
 
 		$temp_dir = trailingslashit( get_temp_dir() ) . 'ftmzi-' . wp_generate_uuid4();
@@ -81,7 +82,7 @@ final class FTMZI_Importer {
 				return $archive;
 			}
 
-			return $this->import_documents( $archive, $post_type, $post_status );
+			return $this->import_documents( $archive, $post_type, $post_status, $category_id );
 		} finally {
 			$this->remove_directory( $temp_dir );
 		}
@@ -93,9 +94,10 @@ final class FTMZI_Importer {
 	 * @param array  $archive     Prepared file map and Markdown paths.
 	 * @param string $post_type   Destination post type.
 	 * @param string $post_status Destination post status.
+	 * @param int    $category_id Destination category ID for posts.
 	 * @return array
 	 */
-	private function import_documents( $archive, $post_type, $post_status ) {
+	private function import_documents( $archive, $post_type, $post_status, $category_id ) {
 		$results = array(
 			'created'  => array(),
 			'failed'   => array(),
@@ -107,7 +109,8 @@ final class FTMZI_Importer {
 				$markdown_path,
 				$archive['files'],
 				$post_type,
-				$post_status
+				$post_status,
+				$category_id
 			);
 
 			if ( is_wp_error( $document ) ) {
@@ -552,9 +555,10 @@ final class FTMZI_Importer {
 	 * @param array  $files         Extracted file map.
 	 * @param string $post_type     Destination post type.
 	 * @param string $post_status   Destination post status.
+	 * @param int    $category_id   Destination category ID for posts.
 	 * @return array|WP_Error
 	 */
-	private function import_document( $markdown_path, $files, $post_type, $post_status ) {
+	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id ) {
 		if ( empty( $files[ $markdown_path ] ) || ! is_readable( $files[ $markdown_path ] ) ) {
 			return new WP_Error(
 				'ftmzi_read_markdown',
@@ -591,6 +595,10 @@ final class FTMZI_Importer {
 			'post_excerpt' => sanitize_textarea_field( $excerpt ),
 			'post_content' => '',
 		);
+
+		if ( 'post' === $post_type && $category_id ) {
+			$post_data['post_category'] = array( $category_id );
+		}
 
 		if ( ! empty( $meta['slug'] ) ) {
 			$post_data['post_name'] = sanitize_title( $meta['slug'] );

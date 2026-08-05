@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 房淘 Markdown 导入导出
  * Description: 导入或导出 Markdown 文章、ZIP 压缩包和本地图片。
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Fangtao
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FTMZI_VERSION', '1.2.0' );
+define( 'FTMZI_VERSION', '1.3.0' );
 define( 'FTMZI_FILE', __FILE__ );
 define( 'FTMZI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FTMZI_URL', plugin_dir_url( __FILE__ ) );
