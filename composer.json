@@ -1,0 +1,14 @@
+{
+  "name": "fangtao/markdown-zip-importer",
+  "description": "Import Markdown documents and local images from ZIP archives into WordPress.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4",
+    "league/commonmark": "~2.9.0"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
