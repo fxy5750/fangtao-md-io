@@ -54,12 +54,20 @@ final class FTMZI_Exporter {
 	private $image_names = array();
 
 	/**
+	 * Markdown filename extension used inside the archive.
+	 *
+	 * @var string
+	 */
+	private $markdown_extension = 'md';
+
+	/**
 	 * Create a ZIP containing one or more Markdown articles.
 	 *
 	 * @param array<int> $post_ids Post IDs.
+	 * @param string     $extension Markdown filename extension.
 	 * @return array{path: string, filename: string}|WP_Error
 	 */
-	public function create_archive( $post_ids ) {
+	public function create_archive( $post_ids, $extension = 'md' ) {
 		if ( ! class_exists( 'DOMDocument' ) ) {
 			return new WP_Error(
 				'ftmzi_export_dom_extension',
@@ -67,6 +75,7 @@ final class FTMZI_Exporter {
 			);
 		}
 
+		$this->markdown_extension = in_array( $extension, array( 'md', 'markdown' ), true ) ? $extension : 'md';
 		$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
 		$posts    = array();
 
@@ -306,11 +315,26 @@ final class FTMZI_Exporter {
 			'---',
 			'title: ' . $this->front_matter_value( get_the_title( $post ) ),
 			'slug: ' . $this->front_matter_value( $post->post_name ),
+			'permalink: ' . $this->front_matter_value( get_permalink( $post ) ),
 			'excerpt: ' . $this->front_matter_value( $post->post_excerpt ),
 			'date: ' . $this->front_matter_value( mysql2date( DATE_ATOM, $post->post_date_gmt ?: $post->post_date, false ) ),
 			'post_type: ' . $this->front_matter_value( $post->post_type ),
 			'status: ' . $this->front_matter_value( $post->post_status ),
 		);
+
+		if ( is_object_in_taxonomy( $post->post_type, 'category' ) ) {
+			$categories = wp_get_post_terms( $post->ID, 'category', array( 'fields' => 'names' ) );
+			if ( ! is_wp_error( $categories ) && $categories ) {
+				$front_matter[] = 'categories: ' . $this->front_matter_value( implode( ', ', $categories ) );
+			}
+		}
+
+		if ( is_object_in_taxonomy( $post->post_type, 'post_tag' ) ) {
+			$tags = wp_get_post_terms( $post->ID, 'post_tag', array( 'fields' => 'names' ) );
+			if ( ! is_wp_error( $tags ) && $tags ) {
+				$front_matter[] = 'tags: ' . $this->front_matter_value( implode( ', ', $tags ) );
+			}
+		}
 
 		if ( $featured_image && $featured_image !== $thumbnail_url ) {
 			$front_matter[] = 'featured_image: ' . $featured_image;
@@ -319,7 +343,7 @@ final class FTMZI_Exporter {
 		$front_matter[] = '---';
 		$document       = implode( "\n", $front_matter ) . "\n\n" . trim( $markdown ) . "\n";
 
-		if ( ! $this->add_archive_string( $prefix . 'article.md', $document ) ) {
+		if ( ! $this->add_archive_string( $prefix . 'article.' . $this->markdown_extension, $document ) ) {
 			return new WP_Error(
 				'ftmzi_export_markdown',
 				sprintf(

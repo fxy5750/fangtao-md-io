@@ -13,8 +13,11 @@ Fangtao Markdown Import & Export is a WordPress plugin for moving content betwee
 - Use the first imported local image as the featured image when no featured image is specified.
 - Choose the destination post type, post status, and a category for standard posts.
 - Configure the default post status used by the import form.
+- Optionally download remote HTTP(S) images into the WordPress Media Library.
+- Import Front Matter dates, statuses, permalinks, categories, tags, and Media Library featured image IDs.
 - Export a single post from its row action.
 - Export multiple posts from WordPress bulk actions.
+- Export all matching content by post type, category, and tag, with `.md` or `.markdown` filenames.
 - Convert WordPress HTML and block content to GitHub Flavored Markdown.
 - Include local Media Library images in an `images/` directory and use relative Markdown paths.
 - Include supported post metadata in Front Matter.
@@ -59,11 +62,11 @@ Open **Markdown > Markdown Import**.
 
 Each Markdown file creates one WordPress content item. The import screen supports standard posts, pages, and public custom post types that the current user can edit.
 
-Administrators can set the import form's initial post status under **Import Settings**. This default can still be changed for each import.
+Administrators can set the import form's initial post status and enable remote image imports under **Import Settings**. The status can still be changed for each import. Remote image importing is disabled by default.
 
 ### Standalone Markdown
 
-A standalone Markdown file can be uploaded directly when it does not depend on bundled local assets. Remote image URLs remain remote.
+A standalone Markdown file can be uploaded directly when it does not depend on bundled local assets. Remote image URLs remain remote unless an administrator enables remote image importing.
 
 ### ZIP Import
 
@@ -93,6 +96,10 @@ The importer accepts a safe subset of single-line YAML-style Front Matter:
 title: A Calm Living Room
 slug: calm-living-room
 excerpt: A practical guide to creating a calm and comfortable space.
+date: 2026-07-10T12:00:00+08:00
+status: draft
+categories: Furniture News, Buying Guides
+tags: oak, living room
 featured_image: images/cover.jpg
 ---
 ```
@@ -101,17 +108,23 @@ featured_image: images/cover.jpg
 | --- | --- | --- | --- |
 | `title` | Yes | Yes | Falls back to the first level-one heading or filename. |
 | `slug` | Yes | Yes | Configures the WordPress post slug. |
+| `permalink` | Yes | Yes | The final path segment is used as the slug when `slug` is absent. |
 | `excerpt` | Yes | Yes | `description` is also accepted during import. |
-| `featured_image` | Yes | Yes | `cover` and `image` are accepted aliases during import. |
-| `date` | No | Yes | Included for portability. |
+| `featured_image` | Yes | Yes | Accepts a bundled path, Media Library URL, remote URL when enabled, or attachment ID. `cover` and `image` are aliases. |
+| `featured_image_id` | Yes | No | Uses an existing Media Library image attachment. |
+| `date` | Yes | Yes | Accepts a date understood by PHP and stores it in the WordPress site timezone. |
+| `categories` | Yes | Yes | Comma-separated names or IDs for standard posts. `category` is an alias. |
+| `tags` | Yes | Yes | Comma-separated names for standard posts. `tag` is an alias. |
 | `post_type` | Selected in the UI | Yes | Import destination is controlled by the import form. |
-| `status` | Selected in the UI | Yes | Import status is controlled by the import form. |
+| `status` | Yes | Yes | Supports draft, pending, private, publish, and future subject to user capabilities. |
 
-Complex YAML values, categories, and tags are not currently imported from Front Matter.
+Complex or nested YAML values are not currently supported.
 
 ## Exporting Markdown
 
 Open **Markdown > Markdown Export** to see the available content types.
+
+The export screen can create a ZIP from all matching content. Choose a content type, optionally filter standard posts by category and tag, and select `.md` or `.markdown` as the document extension.
 
 ### Single Export
 
@@ -181,8 +194,6 @@ The importer applies the following safeguards:
 
 - The plugin does not provide a Markdown editor or live preview.
 - The plugin does not add tools to the Gutenberg or Classic Editor sidebar.
-- Remote images are not downloaded automatically.
-- Categories, tags, and publication dates are not imported from Front Matter.
 - The Markdown parser is currently fixed to GitHub Flavored Markdown.
 - A document management system and REST API are not included.
 - Exported HTML from complex page builders may not have a lossless Markdown representation.
@@ -207,13 +218,21 @@ If the detected OSS integration is enabled but does not have a complete bucket a
 
 ### Why did an image remain an external URL?
 
-Only images bundled inside the uploaded ZIP are imported. Remote image URLs are intentionally preserved.
+Remote image URLs are preserved by default. An administrator can enable **Automatically import remote images** under **Import Settings**. Downloads use the WordPress safe HTTP and Media Library pipelines and retain the 20 MB image limit.
 
 ### Does the plugin modify existing posts during import?
 
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.4.0
+
+- Added Front Matter import for dates, statuses, permalinks, categories, tags, and existing featured image IDs.
+- Added optional safe remote image importing for body and featured images.
+- Added filtered mass export by content type, category, and tag.
+- Added `.md` and `.markdown` export extension selection.
+- Added permalink, category, and tag Front Matter to exported documents.
 
 ### 1.3.0
 

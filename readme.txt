@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -23,16 +23,19 @@ Fangtao Markdown Import & Export provides a focused workflow for moving content 
 * Select the destination post type and post status.
 * Assign imported standard posts to an optional category.
 * Configure the default post status used by the import form.
-* Use supported Front Matter fields for the title, slug, excerpt, and featured image.
+* Optionally import remote HTTP(S) images through WordPress safe HTTP handling.
+* Import Front Matter titles, slugs, permalinks, excerpts, dates, statuses, categories, tags, and featured images.
 
 = Export =
 
 * Export an individual post from its row action.
 * Export selected posts with WordPress bulk actions.
+* Export all matching content by post type, category, and tag.
+* Select `.md` or `.markdown` as the exported document extension.
 * Convert common WordPress HTML and block content to GitHub Flavored Markdown.
 * Package local Media Library images inside an `images` directory.
 * Use relative image references in exported Markdown.
-* Include title, slug, excerpt, date, post type, status, and featured image Front Matter.
+* Include title, slug, permalink, excerpt, date, post type, status, categories, tags, and featured image Front Matter.
 
 = ZIP Structure =
 
@@ -81,11 +84,11 @@ Reference the image in Markdown as:
 
 = Which Front Matter fields are supported during import? =
 
-The importer supports single-line `title`, `slug`, `excerpt`, and `featured_image` values. `description`, `cover`, and `image` are accepted aliases. Categories, tags, publication dates, and complex YAML values are not currently imported.
+The importer supports single-line `title`, `slug`, `permalink`, `excerpt`, `date`, `status`, `categories`, `tags`, `featured_image`, and `featured_image_id` values. `description`, `category`, `tag`, `cover`, and `image` are accepted aliases. Complex or nested YAML values are not supported.
 
 = Are remote images downloaded? =
 
-No. Only local images bundled inside the imported ZIP are added to the Media Library. Remote image URLs remain unchanged.
+Not by default. Administrators can enable remote image importing under **Import Settings**. Downloads use WordPress safe HTTP handling and the Media Library pipeline.
 
 = Why was an imported image stored locally instead of OSS? =
 
@@ -96,6 +99,12 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.4.0 =
+
+* Added extended Front Matter import and export metadata.
+* Added optional safe remote image importing.
+* Added filtered mass export and selectable Markdown file extensions.
 
 = 1.3.0 =
 

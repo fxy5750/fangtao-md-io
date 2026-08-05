@@ -118,4 +118,23 @@ final class FTMZI_Markdown {
 
 		return $result;
 	}
+
+	/**
+	 * Parse a comma-separated Front Matter list.
+	 *
+	 * @param string $value Front Matter scalar value.
+	 * @return array<int, string>
+	 */
+	public function parse_list( $value ) {
+		$value = trim( str_replace( '，', ',', (string) $value ) );
+
+		if ( '[' === substr( $value, 0, 1 ) && ']' === substr( $value, -1 ) ) {
+			$value = substr( $value, 1, -1 );
+		}
+
+		$items = str_getcsv( $value );
+		$items = array_map( 'sanitize_text_field', $items );
+
+		return array_values( array_unique( array_filter( array_map( 'trim', $items ) ) ) );
+	}
 }

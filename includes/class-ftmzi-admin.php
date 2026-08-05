@@ -15,6 +15,7 @@ final class FTMZI_Admin {
 	const PAGE_SLUG = 'fangtao-markdown-zip-importer';
 	const EXPORT_PAGE_SLUG = 'fangtao-markdown-exporter';
 	const DEFAULT_STATUS_OPTION = 'ftmzi_default_post_status';
+	const REMOTE_IMAGES_OPTION = 'ftmzi_import_remote_images';
 
 	/**
 	 * Admin screen ID.
@@ -57,6 +58,7 @@ final class FTMZI_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_post_ftmzi_import', array( $this, 'handle_import' ) );
 		add_action( 'admin_post_ftmzi_export', array( $this, 'handle_export' ) );
+		add_action( 'admin_post_ftmzi_filtered_export', array( $this, 'handle_filtered_export' ) );
 		add_action( 'admin_post_ftmzi_save_settings', array( $this, 'handle_save_settings' ) );
 		add_action( 'admin_init', array( $this, 'register_export_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_menu_icon_assets' ) );
@@ -238,16 +240,76 @@ final class FTMZI_Admin {
 		$post_ids = isset( $_GET['post_ids'] ) ? (array) wp_unslash( $_GET['post_ids'] ) : array();
 		$post_ids = array_map( 'absint', $post_ids );
 
-		$this->download_export( $post_ids );
+		$extension = isset( $_GET['extension'] ) ? sanitize_key( wp_unslash( $_GET['extension'] ) ) : 'md';
+		$this->download_export( $post_ids, $extension );
+	}
+
+	/**
+	 * Handle an export assembled from the export-page filters.
+	 *
+	 * @return void
+	 */
+	public function handle_filtered_export() {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( '您没有导出文章的权限。', 'fangtao-markdown-zip-importer' ) );
+		}
+
+		check_admin_referer( 'ftmzi_filtered_export', 'ftmzi_export_nonce' );
+
+		$post_type = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : 'post';
+		$extension = isset( $_POST['extension'] ) ? sanitize_key( wp_unslash( $_POST['extension'] ) ) : 'md';
+		$post_types = wp_list_pluck( $this->get_exportable_post_types(), 'name' );
+
+		if ( ! in_array( $post_type, $post_types, true ) ) {
+			wp_die( esc_html__( '所选内容类型不可导出。', 'fangtao-markdown-zip-importer' ) );
+		}
+
+		$query_args = array(
+			'post_type'              => $post_type,
+			'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+			'posts_per_page'         => -1,
+			'fields'                 => 'ids',
+			'orderby'                => 'ID',
+			'order'                  => 'ASC',
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+		);
+
+		if ( 'post' === $post_type ) {
+			$category_id = isset( $_POST['category_id'] ) ? absint( $_POST['category_id'] ) : 0;
+			$tag_id      = isset( $_POST['tag_id'] ) ? absint( $_POST['tag_id'] ) : 0;
+
+			if ( $category_id ) {
+				$query_args['cat'] = $category_id;
+			}
+
+			if ( $tag_id ) {
+				$query_args['tag_id'] = $tag_id;
+			}
+		}
+
+		$post_ids = get_posts( $query_args );
+		$post_ids = array_values(
+			array_filter(
+				$post_ids,
+				static function ( $post_id ) {
+					return current_user_can( 'edit_post', $post_id );
+				}
+			)
+		);
+
+		$this->download_export( $post_ids, $extension );
 	}
 
 	/**
 	 * Build and stream a Markdown ZIP archive.
 	 *
 	 * @param array<int> $post_ids Post IDs.
+	 * @param string     $extension Markdown filename extension.
 	 * @return void
 	 */
-	private function download_export( $post_ids ) {
+	private function download_export( $post_ids, $extension = 'md' ) {
 		$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
 
 		foreach ( $post_ids as $post_id ) {
@@ -257,7 +319,7 @@ final class FTMZI_Admin {
 		}
 
 		$exporter = new FTMZI_Exporter();
-		$result   = $exporter->create_archive( $post_ids );
+		$result   = $exporter->create_archive( $post_ids, $extension );
 
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
@@ -319,9 +381,10 @@ final class FTMZI_Admin {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File metadata is validated by the importer before use.
-		$upload   = isset( $_FILES['markdown_zip'] ) ? $_FILES['markdown_zip'] : array();
-		$importer = new FTMZI_Importer();
-		$result   = $importer->import( $upload, $post_type, $post_status, $category_id );
+		$upload               = isset( $_FILES['markdown_zip'] ) ? $_FILES['markdown_zip'] : array();
+		$importer             = new FTMZI_Importer();
+		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
+		$result               = $importer->import( $upload, $post_type, $post_status, $category_id, $import_remote_images );
 
 		$this->redirect_with_result( $result );
 	}
@@ -338,13 +401,15 @@ final class FTMZI_Admin {
 
 		check_admin_referer( 'ftmzi_save_settings', 'ftmzi_settings_nonce' );
 
-		$default_status = isset( $_POST['default_post_status'] ) ? sanitize_key( wp_unslash( $_POST['default_post_status'] ) ) : 'draft';
+		$default_status       = isset( $_POST['default_post_status'] ) ? sanitize_key( wp_unslash( $_POST['default_post_status'] ) ) : 'draft';
+		$import_remote_images = isset( $_POST['import_remote_images'] ) ? 1 : 0;
 
 		if ( ! in_array( $default_status, array( 'draft', 'publish' ), true ) ) {
 			$default_status = 'draft';
 		}
 
 		update_option( self::DEFAULT_STATUS_OPTION, $default_status, false );
+		update_option( self::REMOTE_IMAGES_OPTION, $import_remote_images, false );
 
 		wp_safe_redirect(
 			add_query_arg(
@@ -393,8 +458,9 @@ final class FTMZI_Admin {
 			return;
 		}
 
-		$result         = null;
-		$default_status = get_option( self::DEFAULT_STATUS_OPTION, 'draft' );
+		$result               = null;
+		$default_status       = get_option( self::DEFAULT_STATUS_OPTION, 'draft' );
+		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
 
 		if ( ! in_array( $default_status, array( 'draft', 'publish' ), true ) || ! current_user_can( 'publish_posts' ) ) {
 			$default_status = 'draft';
@@ -423,7 +489,7 @@ final class FTMZI_Admin {
 
 			<?php if ( isset( $_GET['settings-updated'] ) ) : ?>
 				<div class="notice notice-success is-dismissible inline">
-					<p><?php esc_html_e( '默认文章状态已保存。', 'fangtao-markdown-zip-importer' ); ?></p>
+					<p><?php esc_html_e( '导入设置已保存。', 'fangtao-markdown-zip-importer' ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -511,7 +577,7 @@ final class FTMZI_Admin {
 						<code>![客厅](images/living-room.jpg)</code>
 					</p>
 					<p>
-						<?php esc_html_e( '可选 Front Matter 字段：title、slug、excerpt、featured_image（也兼容 cover、image）。未指定封面时，正文首张本地图片会设为特色图片。', 'fangtao-markdown-zip-importer' ); ?>
+						<?php esc_html_e( '可选 Front Matter 字段：title、slug、permalink、excerpt、date、status、categories、tags、featured_image 和 featured_image_id。未指定封面时，正文首张已导入图片会设为特色图片。', 'fangtao-markdown-zip-importer' ); ?>
 					</p>
 				</div>
 
@@ -528,6 +594,14 @@ final class FTMZI_Admin {
 								<option value="publish"<?php selected( 'publish', $default_status ); ?>><?php esc_html_e( '立即发布', 'fangtao-markdown-zip-importer' ); ?></option>
 							</select>
 							<p class="description"><?php esc_html_e( '用于设置导入表单首次打开时默认选中的文章状态，单次导入仍可临时修改。', 'fangtao-markdown-zip-importer' ); ?></p>
+						</div>
+
+						<div class="ftmzi-field ftmzi-field--checkbox">
+							<label for="ftmzi-import-remote-images">
+								<input id="ftmzi-import-remote-images" name="import_remote_images" type="checkbox" value="1"<?php checked( $import_remote_images ); ?>>
+								<?php esc_html_e( '自动导入远程图片', 'fangtao-markdown-zip-importer' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( '开启后，正文和特色图片中的 HTTP(S) 图片会下载到媒体库；默认关闭。', 'fangtao-markdown-zip-importer' ); ?></p>
 						</div>
 
 						<?php submit_button( __( '保存设置', 'fangtao-markdown-zip-importer' ), 'secondary', 'submit', false ); ?>
@@ -549,6 +623,13 @@ final class FTMZI_Admin {
 		}
 
 		$post_types = $this->get_exportable_post_types();
+		$tags       = get_terms(
+			array(
+				'taxonomy'   => 'post_tag',
+				'hide_empty' => false,
+			)
+		);
+		$tags       = is_wp_error( $tags ) ? array() : $tags;
 		?>
 		<div class="wrap ftmzi-wrap">
 			<h1><?php esc_html_e( 'Markdown 导出', 'fangtao-markdown-zip-importer' ); ?></h1>
@@ -569,6 +650,58 @@ final class FTMZI_Admin {
 					</p>
 				</div>
 			<?php endif; ?>
+
+			<form class="ftmzi-card" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
+				<input type="hidden" name="action" value="ftmzi_filtered_export">
+				<?php wp_nonce_field( 'ftmzi_filtered_export', 'ftmzi_export_nonce' ); ?>
+
+				<h2><?php esc_html_e( '批量筛选导出', 'fangtao-markdown-zip-importer' ); ?></h2>
+				<div class="ftmzi-fields-row ftmzi-fields-row--export">
+					<div class="ftmzi-field">
+						<label for="ftmzi-export-post-type"><?php esc_html_e( '内容类型', 'fangtao-markdown-zip-importer' ); ?></label>
+						<select id="ftmzi-export-post-type" name="post_type">
+							<?php foreach ( $post_types as $post_type ) : ?>
+								<option value="<?php echo esc_attr( $post_type->name ); ?>"><?php echo esc_html( $post_type->labels->name ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+
+					<div class="ftmzi-field" data-ftmzi-export-post-filter>
+						<label for="ftmzi-export-category"><?php esc_html_e( '文章分类', 'fangtao-markdown-zip-importer' ); ?></label>
+						<?php
+						wp_dropdown_categories(
+							array(
+								'hide_empty'        => false,
+								'id'                => 'ftmzi-export-category',
+								'name'              => 'category_id',
+								'option_none_value' => '0',
+								'show_option_none'  => __( '全部分类', 'fangtao-markdown-zip-importer' ),
+							)
+						);
+						?>
+					</div>
+
+					<div class="ftmzi-field" data-ftmzi-export-post-filter>
+						<label for="ftmzi-export-tag"><?php esc_html_e( '文章标签', 'fangtao-markdown-zip-importer' ); ?></label>
+						<select id="ftmzi-export-tag" name="tag_id">
+							<option value="0"><?php esc_html_e( '全部标签', 'fangtao-markdown-zip-importer' ); ?></option>
+							<?php foreach ( $tags as $tag ) : ?>
+								<option value="<?php echo esc_attr( $tag->term_id ); ?>"><?php echo esc_html( $tag->name ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+
+					<div class="ftmzi-field">
+						<label for="ftmzi-export-extension"><?php esc_html_e( '文件扩展名', 'fangtao-markdown-zip-importer' ); ?></label>
+						<select id="ftmzi-export-extension" name="extension">
+							<option value="md">.md</option>
+							<option value="markdown">.markdown</option>
+						</select>
+					</div>
+				</div>
+
+				<?php submit_button( __( '导出筛选结果', 'fangtao-markdown-zip-importer' ), 'primary', 'submit', false ); ?>
+			</form>
 
 			<div class="ftmzi-card">
 				<h2><?php esc_html_e( '选择要导出的内容', 'fangtao-markdown-zip-importer' ); ?></h2>
@@ -602,7 +735,7 @@ final class FTMZI_Admin {
 			<div class="ftmzi-guide">
 				<h2><?php esc_html_e( 'ZIP 目录结构', 'fangtao-markdown-zip-importer' ); ?></h2>
 				<p><?php esc_html_e( '单篇导出：', 'fangtao-markdown-zip-importer' ); ?></p>
-				<pre><code>article.md
+				<pre><code>article.md（或 article.markdown）
 images/
   article-image.jpg</code></pre>
 				<p><?php esc_html_e( '批量导出时，每篇内容会放入独立目录，目录内仍保持相同结构。', 'fangtao-markdown-zip-importer' ); ?></p>

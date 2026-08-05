@@ -44,9 +44,10 @@ final class FTMZI_Importer {
 	 * @param string $post_type   Destination post type.
 	 * @param string $post_status Destination post status.
 	 * @param int    $category_id Destination category ID for posts.
+	 * @param bool   $import_remote_images Whether remote HTTP images should be imported.
 	 * @return array|WP_Error
 	 */
-	public function import( $upload, $post_type, $post_status, $category_id = 0 ) {
+	public function import( $upload, $post_type, $post_status, $category_id = 0, $import_remote_images = false ) {
 		$this->media_cache = array();
 		$extension         = $this->validate_upload( $upload );
 
@@ -63,7 +64,7 @@ final class FTMZI_Importer {
 				'markdown' => array( $markdown_path ),
 			);
 
-			return $this->import_documents( $archive, $post_type, $post_status, $category_id );
+			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images );
 		}
 
 		$temp_dir = trailingslashit( get_temp_dir() ) . 'ftmzi-' . wp_generate_uuid4();
@@ -82,7 +83,7 @@ final class FTMZI_Importer {
 				return $archive;
 			}
 
-			return $this->import_documents( $archive, $post_type, $post_status, $category_id );
+			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images );
 		} finally {
 			$this->remove_directory( $temp_dir );
 		}
@@ -95,9 +96,10 @@ final class FTMZI_Importer {
 	 * @param string $post_type   Destination post type.
 	 * @param string $post_status Destination post status.
 	 * @param int    $category_id Destination category ID for posts.
+	 * @param bool   $import_remote_images Whether remote HTTP images should be imported.
 	 * @return array
 	 */
-	private function import_documents( $archive, $post_type, $post_status, $category_id ) {
+	private function import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images ) {
 		$results = array(
 			'created'  => array(),
 			'failed'   => array(),
@@ -110,7 +112,8 @@ final class FTMZI_Importer {
 				$archive['files'],
 				$post_type,
 				$post_status,
-				$category_id
+				$category_id,
+				$import_remote_images
 			);
 
 			if ( is_wp_error( $document ) ) {
@@ -556,9 +559,10 @@ final class FTMZI_Importer {
 	 * @param string $post_type     Destination post type.
 	 * @param string $post_status   Destination post status.
 	 * @param int    $category_id   Destination category ID for posts.
+	 * @param bool   $import_remote_images Whether remote HTTP images should be imported.
 	 * @return array|WP_Error
 	 */
-	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id ) {
+	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id, $import_remote_images ) {
 		if ( empty( $files[ $markdown_path ] ) || ! is_readable( $files[ $markdown_path ] ) ) {
 			return new WP_Error(
 				'ftmzi_read_markdown',
@@ -588,9 +592,11 @@ final class FTMZI_Importer {
 			$excerpt = $meta['description'];
 		}
 
-		$post_data = array(
+		$warnings         = array();
+		$effective_status = $this->front_matter_status( $meta, $post_type, $post_status );
+		$post_data        = array(
 			'post_type'    => $post_type,
-			'post_status'  => $post_status,
+			'post_status'  => $effective_status,
 			'post_title'   => sanitize_text_field( $title ),
 			'post_excerpt' => sanitize_textarea_field( $excerpt ),
 			'post_content' => '',
@@ -602,6 +608,21 @@ final class FTMZI_Importer {
 
 		if ( ! empty( $meta['slug'] ) ) {
 			$post_data['post_name'] = sanitize_title( $meta['slug'] );
+		} elseif ( ! empty( $meta['permalink'] ) ) {
+			$permalink_path = wp_parse_url( $meta['permalink'], PHP_URL_PATH );
+			$post_data['post_name'] = sanitize_title( rawurldecode( basename( untrailingslashit( (string) $permalink_path ) ) ) );
+		}
+
+		if ( ! empty( $meta['date'] ) ) {
+			$date = date_create( $meta['date'], wp_timezone() );
+
+			if ( false !== $date ) {
+				$date->setTimezone( wp_timezone() );
+				$post_data['post_date']     = $date->format( 'Y-m-d H:i:s' );
+				$post_data['post_date_gmt'] = get_gmt_from_date( $post_data['post_date'] );
+			} else {
+				$warnings[] = __( 'Front Matter 中的 date 无法识别，已使用当前时间。', 'fangtao-markdown-zip-importer' );
+			}
 		}
 
 		$post_id = wp_insert_post( wp_slash( $post_data ), true );
@@ -610,7 +631,6 @@ final class FTMZI_Importer {
 			return $post_id;
 		}
 
-		$warnings            = array();
 		$first_attachment_id = 0;
 		$markdown_content    = $this->replace_image_references(
 			$heading['content'],
@@ -618,7 +638,8 @@ final class FTMZI_Importer {
 			$files,
 			$post_id,
 			$warnings,
-			$first_attachment_id
+			$first_attachment_id,
+			$import_remote_images
 		);
 		$html                = $this->markdown->convert( $markdown_content );
 
@@ -642,7 +663,10 @@ final class FTMZI_Importer {
 			return $updated;
 		}
 
-		$featured_reference = '';
+		$this->apply_front_matter_terms( $post_id, $post_type, $meta, $warnings );
+
+		$featured_reference     = '';
+		$featured_attachment_id = ! empty( $meta['featured_image_id'] ) ? absint( $meta['featured_image_id'] ) : 0;
 
 		foreach ( array( 'featured_image', 'cover', 'image' ) as $featured_key ) {
 			if ( ! empty( $meta[ $featured_key ] ) ) {
@@ -651,14 +675,21 @@ final class FTMZI_Importer {
 			}
 		}
 
-		if ( $featured_reference ) {
-			$featured = $this->import_image_reference(
-				$featured_reference,
-				$markdown_path,
-				$files,
-				$post_id,
-				''
-			);
+		if ( ! $featured_attachment_id && ctype_digit( (string) $featured_reference ) ) {
+			$featured_attachment_id = absint( $featured_reference );
+		}
+
+		if ( $featured_attachment_id && wp_attachment_is_image( $featured_attachment_id ) ) {
+			$first_attachment_id = $featured_attachment_id;
+		} elseif ( $featured_reference ) {
+			$existing_attachment_id = $this->is_remote_http_reference( $featured_reference )
+				? attachment_url_to_postid( esc_url_raw( $featured_reference ) )
+				: 0;
+			$featured = $existing_attachment_id
+				? array( 'id' => $existing_attachment_id, 'url' => wp_get_attachment_url( $existing_attachment_id ) )
+				: ( $this->is_remote_http_reference( $featured_reference )
+					? ( $import_remote_images ? $this->import_remote_image_reference( $featured_reference, $post_id, '' ) : new WP_Error( 'ftmzi_remote_image_disabled', __( '特色图片为远程地址，但远程图片导入尚未开启。', 'fangtao-markdown-zip-importer' ) ) )
+					: $this->import_image_reference( $featured_reference, $markdown_path, $files, $post_id, '' ) );
 
 			if ( is_wp_error( $featured ) ) {
 				$warnings[] = $featured->get_error_message();
@@ -692,26 +723,22 @@ final class FTMZI_Importer {
 	 * @param int    $first_attachment_id First imported attachment ID.
 	 * @return string
 	 */
-	private function replace_image_references( $markdown, $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id ) {
+	private function replace_image_references( $markdown, $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images ) {
 		$pattern = '/!\[([^\]]*)\]\(\s*(?:<([^>]+)>|([^\s\)]+))(?:\s+((["\']).*?\5))?\s*\)/u';
 
 		return preg_replace_callback(
 			$pattern,
-			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id ) {
+			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images ) {
 				$alt       = isset( $matches[1] ) ? sanitize_text_field( $matches[1] ) : '';
 				$reference = ! empty( $matches[2] ) ? $matches[2] : $matches[3];
 
-				if ( $this->is_external_reference( $reference ) ) {
+				if ( $this->is_external_reference( $reference ) && ! ( $import_remote_images && $this->is_remote_http_reference( $reference ) ) ) {
 					return $matches[0];
 				}
 
-				$imported = $this->import_image_reference(
-					$reference,
-					$markdown_path,
-					$files,
-					$post_id,
-					$alt
-				);
+				$imported = $this->is_remote_http_reference( $reference )
+					? $this->import_remote_image_reference( $reference, $post_id, $alt )
+					: $this->import_image_reference( $reference, $markdown_path, $files, $post_id, $alt );
 
 				if ( is_wp_error( $imported ) ) {
 					$warnings[] = $imported->get_error_message();
@@ -838,6 +865,192 @@ final class FTMZI_Importer {
 		);
 
 		return $this->media_cache[ $resolved ];
+	}
+
+	/**
+	 * Import a remote HTTP image through the WordPress media pipeline.
+	 *
+	 * @param string $reference Remote image URL.
+	 * @param int    $post_id   Parent post ID.
+	 * @param string $alt       Image alt text.
+	 * @return array|WP_Error
+	 */
+	private function import_remote_image_reference( $reference, $post_id, $alt ) {
+		$url       = esc_url_raw( $reference );
+		$cache_key = 'remote:' . $url;
+
+		if ( isset( $this->media_cache[ $cache_key ] ) ) {
+			return $this->media_cache[ $cache_key ];
+		}
+
+		if ( ! wp_http_validate_url( $url ) ) {
+			return new WP_Error( 'ftmzi_remote_image_url', __( '远程图片地址不安全或无效。', 'fangtao-markdown-zip-importer' ) );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+
+		$temp_file = download_url( $url, 20 );
+
+		if ( is_wp_error( $temp_file ) ) {
+			return new WP_Error(
+				'ftmzi_remote_image_download',
+				sprintf(
+					/* translators: 1: image URL, 2: download error. */
+					__( '远程图片下载失败（%1$s）：%2$s', 'fangtao-markdown-zip-importer' ),
+					$url,
+					$temp_file->get_error_message()
+				)
+			);
+		}
+
+		if ( filesize( $temp_file ) > self::MAX_IMAGE_SIZE ) {
+			@unlink( $temp_file );
+			return new WP_Error( 'ftmzi_remote_image_size', __( '远程图片超过 20 MB 限制。', 'fangtao-markdown-zip-importer' ) );
+		}
+
+		$mime       = wp_get_image_mime( $temp_file );
+		$extensions = array(
+			'image/jpeg' => 'jpg',
+			'image/png'  => 'png',
+			'image/gif'  => 'gif',
+			'image/webp' => 'webp',
+			'image/avif' => 'avif',
+		);
+
+		if ( ! isset( $extensions[ $mime ] ) ) {
+			@unlink( $temp_file );
+			return new WP_Error( 'ftmzi_remote_image_type', __( '远程文件不是受支持的图片格式。', 'fangtao-markdown-zip-importer' ) );
+		}
+
+		$url_path = wp_parse_url( $url, PHP_URL_PATH );
+		$basename = sanitize_file_name( basename( (string) $url_path ) );
+		$basename = pathinfo( $basename, PATHINFO_FILENAME );
+		$filename   = ( $basename ? $basename : 'remote-image' ) . '.' . $extensions[ $mime ];
+		$file_array = array(
+			'name'     => $filename,
+			'tmp_name' => $temp_file,
+		);
+		$restore_oss_filter = $this->suspend_unconfigured_oss_filter();
+
+		try {
+			$attachment_id = media_handle_sideload( $file_array, $post_id, $alt );
+		} catch ( Throwable $exception ) {
+			@unlink( $temp_file );
+			return new WP_Error( 'ftmzi_remote_image_import', $exception->getMessage() );
+		} finally {
+			if ( $restore_oss_filter ) {
+				add_filter( 'wp_generate_attachment_metadata', 'oss_upload_thumbs', 100 );
+			}
+		}
+
+		if ( is_wp_error( $attachment_id ) ) {
+			@unlink( $temp_file );
+			return $attachment_id;
+		}
+
+		if ( $alt ) {
+			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $alt );
+		}
+
+		$attachment_url = wp_get_attachment_url( $attachment_id );
+
+		if ( ! $attachment_url ) {
+			return new WP_Error( 'ftmzi_remote_attachment_url', __( '远程图片已入库，但无法获取媒体 URL。', 'fangtao-markdown-zip-importer' ) );
+		}
+
+		$this->media_cache[ $cache_key ] = array(
+			'id'  => (int) $attachment_id,
+			'url' => esc_url_raw( $attachment_url ),
+		);
+
+		return $this->media_cache[ $cache_key ];
+	}
+
+	/**
+	 * Resolve a Front Matter status without bypassing WordPress capabilities.
+	 *
+	 * @param array  $meta           Front Matter metadata.
+	 * @param string $post_type      Destination post type.
+	 * @param string $default_status Status selected in the import form.
+	 * @return string
+	 */
+	private function front_matter_status( $meta, $post_type, $default_status ) {
+		$status = ! empty( $meta['status'] ) ? sanitize_key( $meta['status'] ) : $default_status;
+
+		if ( ! in_array( $status, array( 'draft', 'pending', 'private', 'publish', 'future' ), true ) ) {
+			return $default_status;
+		}
+
+		$post_object = get_post_type_object( $post_type );
+
+		if ( in_array( $status, array( 'private', 'publish', 'future' ), true ) && ( ! $post_object || ! current_user_can( $post_object->cap->publish_posts ) ) ) {
+			return 'draft';
+		}
+
+		return $status;
+	}
+
+	/**
+	 * Apply post categories and tags from Front Matter.
+	 *
+	 * @param int    $post_id   Post ID.
+	 * @param string $post_type Post type.
+	 * @param array  $meta      Front Matter metadata.
+	 * @param array  $warnings  Import warnings.
+	 * @return void
+	 */
+	private function apply_front_matter_terms( $post_id, $post_type, $meta, &$warnings ) {
+		if ( 'post' !== $post_type ) {
+			return;
+		}
+
+		$category_value = ! empty( $meta['categories'] ) ? $meta['categories'] : ( ! empty( $meta['category'] ) ? $meta['category'] : '' );
+
+		if ( $category_value ) {
+			$category_ids = array();
+
+			foreach ( $this->markdown->parse_list( $category_value ) as $category ) {
+				$term = ctype_digit( $category ) ? term_exists( absint( $category ), 'category' ) : term_exists( $category, 'category' );
+
+				if ( ! $term && current_user_can( 'manage_categories' ) ) {
+					$term = wp_insert_term( $category, 'category' );
+				}
+
+				if ( is_wp_error( $term ) ) {
+					$warnings[] = $term->get_error_message();
+				} elseif ( $term ) {
+					$category_ids[] = (int) ( is_array( $term ) ? $term['term_id'] : $term );
+				}
+			}
+
+			if ( $category_ids ) {
+				$result = wp_set_post_categories( $post_id, array_values( array_unique( $category_ids ) ), false );
+				if ( is_wp_error( $result ) ) {
+					$warnings[] = $result->get_error_message();
+				}
+			}
+		}
+
+		$tag_value = ! empty( $meta['tags'] ) ? $meta['tags'] : ( ! empty( $meta['tag'] ) ? $meta['tag'] : '' );
+
+		if ( $tag_value ) {
+			$result = wp_set_post_tags( $post_id, $this->markdown->parse_list( $tag_value ), false );
+			if ( is_wp_error( $result ) ) {
+				$warnings[] = $result->get_error_message();
+			}
+		}
+	}
+
+	/**
+	 * Determine whether a reference is a remote HTTP(S) URL.
+	 *
+	 * @param string $reference Image reference.
+	 * @return bool
+	 */
+	private function is_remote_http_reference( $reference ) {
+		return (bool) preg_match( '~^https?://~i', trim( $reference ) );
 	}
 
 	/**

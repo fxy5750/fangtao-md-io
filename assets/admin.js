@@ -1,24 +1,40 @@
 ( function () {
 	'use strict';
 
-	const postTypeSelect = document.getElementById( 'ftmzi-post-type' );
-	const categoryField = document.querySelector( '[data-ftmzi-category-field]' );
+	const importPostType = document.getElementById( 'ftmzi-post-type' );
+	const importCategory = document.querySelector( '[data-ftmzi-category-field]' );
 
-	if ( ! postTypeSelect || ! categoryField ) {
-		return;
+	if ( importPostType && importCategory ) {
+		const categorySelect = importCategory.querySelector( 'select' );
+		const updateImportCategory = function () {
+			const isPost = 'post' === importPostType.value;
+
+			importCategory.hidden = ! isPost;
+			if ( categorySelect ) {
+				categorySelect.disabled = ! isPost;
+			}
+		};
+
+		importPostType.addEventListener( 'change', updateImportCategory );
+		updateImportCategory();
 	}
 
-	const categorySelect = categoryField.querySelector( 'select' );
-	const updateCategoryField = function () {
-		const isPost = 'post' === postTypeSelect.value;
+	const exportPostType = document.getElementById( 'ftmzi-export-post-type' );
+	const exportPostFilters = document.querySelectorAll( '[data-ftmzi-export-post-filter]' );
 
-		categoryField.hidden = ! isPost;
+	if ( exportPostType && exportPostFilters.length ) {
+		const updateExportFilters = function () {
+			const isPost = 'post' === exportPostType.value;
 
-		if ( categorySelect ) {
-			categorySelect.disabled = ! isPost;
-		}
-	};
+			exportPostFilters.forEach( function ( field ) {
+				field.hidden = ! isPost;
+				field.querySelectorAll( 'select' ).forEach( function ( select ) {
+					select.disabled = ! isPost;
+				} );
+			} );
+		};
 
-	postTypeSelect.addEventListener( 'change', updateCategoryField );
-	updateCategoryField();
+		exportPostType.addEventListener( 'change', updateExportFilters );
+		updateExportFilters();
+	}
 }() );

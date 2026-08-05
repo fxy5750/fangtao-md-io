@@ -13,8 +13,11 @@
 - 未指定特色图片时，可将首张导入的本地图片设为特色图片。
 - 导入时选择目标文章类型、文章状态，并可为普通文章选择分类。
 - 设置导入表单默认使用草稿或立即发布。
+- 可选将远程 HTTP(S) 图片下载到 WordPress 媒体库。
+- 从 Front Matter 导入时间、状态、永久链接、分类、标签和媒体库特色图片 ID。
 - 从内容列表的行操作中导出单篇内容。
 - 通过 WordPress 批量操作导出多篇内容。
+- 按内容类型、分类和标签筛选全部匹配内容，并选择 `.md` 或 `.markdown` 扩展名导出。
 - 将 WordPress HTML 和区块内容转换为 GitHub Flavored Markdown。
 - 将本地媒体库图片写入 `images/` 目录，并在 Markdown 中使用相对路径。
 - 在导出的 Markdown 中包含已支持的 Front Matter 元数据。
@@ -59,11 +62,11 @@
 
 每个 Markdown 文件会创建一篇新的 WordPress 内容。导入页面支持文章、页面，以及当前用户有权编辑的公开自定义文章类型。
 
-管理员可在页面底部的 **导入设置** 中保存表单默认使用的文章状态；执行单次导入时仍可临时修改。
+管理员可在页面底部的 **导入设置** 中保存表单默认使用的文章状态，并选择是否导入远程图片；执行单次导入时仍可临时修改状态。远程图片导入默认关闭。
 
 ### 导入单个 Markdown
 
-不依赖本地资源的 Markdown 文件可以直接上传。远程图片地址会保持原样，不会自动下载。
+不依赖本地资源的 Markdown 文件可以直接上传。远程图片地址默认保持原样，管理员开启远程图片导入后才会下载到媒体库。
 
 ### 导入 ZIP
 
@@ -93,6 +96,10 @@ articles/
 title: 安静舒适的客厅
 slug: calm-living-room
 excerpt: 一份打造安静舒适空间的实用指南。
+date: 2026-07-10T12:00:00+08:00
+status: draft
+categories: 家具资讯, 选购指南
+tags: 橡木, 客厅
 featured_image: images/cover.jpg
 ---
 ```
@@ -101,17 +108,23 @@ featured_image: images/cover.jpg
 | --- | --- | --- | --- |
 | `title` | 支持 | 支持 | 未填写时使用首个一级标题或文件名。 |
 | `slug` | 支持 | 支持 | 设置 WordPress 文章别名。 |
+| `permalink` | 支持 | 支持 | 未填写 `slug` 时，使用永久链接最后一段作为文章别名。 |
 | `excerpt` | 支持 | 支持 | 导入时也兼容 `description`。 |
-| `featured_image` | 支持 | 支持 | 导入时也兼容 `cover` 和 `image`。 |
-| `date` | 暂不支持 | 支持 | 导出时用于增强可迁移性。 |
+| `featured_image` | 支持 | 支持 | 可使用压缩包路径、媒体库 URL、启用后的远程 URL 或附件 ID；兼容 `cover` 和 `image`。 |
+| `featured_image_id` | 支持 | 不导出 | 使用现有媒体库图片附件。 |
+| `date` | 支持 | 支持 | 按 WordPress 站点时区保存 PHP 可识别的日期。 |
+| `categories` | 支持 | 支持 | 普通文章的分类名称或 ID，逗号分隔；兼容 `category`。 |
+| `tags` | 支持 | 支持 | 普通文章的标签名称，逗号分隔；兼容 `tag`。 |
 | `post_type` | 在界面选择 | 支持 | 导入目标由导入表单控制。 |
-| `status` | 在界面选择 | 支持 | 导入状态由导入表单控制。 |
+| `status` | 支持 | 支持 | 支持 draft、pending、private、publish、future，并受当前用户权限限制。 |
 
-暂不支持复杂 YAML 值，也不会从 Front Matter 导入分类和标签。
+暂不支持复杂或嵌套 YAML 值。
 
 ## 导出 Markdown
 
 打开 **Markdown > Markdown 导出**，可以查看支持导出的内容类型。
+
+导出页面可以按内容类型导出全部匹配内容；普通文章还可按分类和标签筛选，并选择内部文档使用 `.md` 或 `.markdown` 扩展名。
 
 ### 单篇导出
 
@@ -181,8 +194,6 @@ article-two-456/
 
 - 暂不提供 Markdown 编辑器和实时预览。
 - 暂未在 Gutenberg 或经典编辑器侧边栏提供工具。
-- 不会自动下载远程图片。
-- 暂不从 Front Matter 导入分类、标签和发布日期。
 - Markdown 解析器目前固定为 GitHub Flavored Markdown。
 - 暂不包含内部文档管理系统和 REST API。
 - 复杂页面构建器生成的 HTML 无法保证无损转换为 Markdown。
@@ -207,13 +218,21 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 
 ### 为什么图片仍然是外部地址？
 
-插件只会导入上传 ZIP 中包含的本地图片。远程图片地址会被有意保留。
+远程图片默认保留原地址。管理员可在 **导入设置** 中开启 **自动导入远程图片**；下载会经过 WordPress 安全 HTTP 与媒体库流程，并继续执行单张图片 20 MB 限制。
 
 ### 导入时会覆盖已有文章吗？
 
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.4.0
+
+- 增加日期、状态、永久链接、分类、标签和现有特色图片 ID 的 Front Matter 导入。
+- 增加正文与特色图片的可选安全远程图片导入。
+- 增加按内容类型、分类和标签筛选的批量导出。
+- 增加 `.md` 与 `.markdown` 导出扩展名选择。
+- 导出的 Front Matter 增加永久链接、分类和标签。
 
 ### 1.3.0
 
