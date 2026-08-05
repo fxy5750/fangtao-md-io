@@ -19,6 +19,23 @@
 		updateImportCategory();
 	}
 
+	document.querySelectorAll( '[data-ftmzi-parser-select]' ).forEach( function ( select ) {
+		const flavorTarget = document.getElementById( select.dataset.flavorTarget );
+
+		if ( ! flavorTarget ) {
+			return;
+		}
+
+		const updateParserFlavor = function () {
+			const option = select.options[ select.selectedIndex ];
+
+			flavorTarget.textContent = option ? option.dataset.flavor || '' : '';
+		};
+
+		select.addEventListener( 'change', updateParserFlavor );
+		updateParserFlavor();
+	} );
+
 	const exportPostType = document.getElementById( 'ftmzi-export-post-type' );
 	const exportPostFilters = document.querySelectorAll( '[data-ftmzi-export-post-filter]' );
 

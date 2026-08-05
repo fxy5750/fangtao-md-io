@@ -2,7 +2,7 @@
 /**
  * WordPress content to Markdown ZIP exporter.
  *
- * @package Fangtao_Markdown_Zip_Importer
+ * @package Fangtao_MD_IO
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -71,11 +71,12 @@ final class FTMZI_Exporter {
 		if ( ! class_exists( 'DOMDocument' ) ) {
 			return new WP_Error(
 				'ftmzi_export_dom_extension',
-				__( '服务器未启用 PHP DOM 扩展，无法转换文章内容。', 'fangtao-markdown-zip-importer' )
+				__( '服务器未启用 PHP DOM 扩展，无法转换文章内容。', 'fangtao-md-io' )
 			);
 		}
 
-		$this->markdown_extension = in_array( $extension, array( 'md', 'markdown' ), true ) ? $extension : 'md';
+		$extension                = strtolower( sanitize_text_field( $extension ) );
+		$this->markdown_extension = in_array( $extension, FTMZI_Importer::DOCUMENT_EXTENSIONS, true ) ? $extension : 'md';
 		$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
 		$posts    = array();
 
@@ -90,16 +91,16 @@ final class FTMZI_Exporter {
 		if ( empty( $posts ) ) {
 			return new WP_Error(
 				'ftmzi_export_empty',
-				__( '没有可导出的内容。', 'fangtao-markdown-zip-importer' )
+				__( '没有可导出的内容。', 'fangtao-md-io' )
 			);
 		}
 
-		$temp_file = wp_tempnam( 'fangtao-markdown-export.zip' );
+		$temp_file = wp_tempnam( 'fangtao-md-io-export.zip' );
 
 		if ( ! $temp_file ) {
 			return new WP_Error(
 				'ftmzi_export_temp_file',
-				__( '无法创建临时导出文件，请检查 PHP 临时目录权限。', 'fangtao-markdown-zip-importer' )
+				__( '无法创建临时导出文件，请检查 PHP 临时目录权限。', 'fangtao-md-io' )
 			);
 		}
 
@@ -128,12 +129,12 @@ final class FTMZI_Exporter {
 
 			return new WP_Error(
 				'ftmzi_export_close',
-				__( 'ZIP 压缩包写入失败。', 'fangtao-markdown-zip-importer' )
+				__( 'ZIP 压缩包写入失败。', 'fangtao-md-io' )
 			);
 		}
 
 		$filename = $is_batch
-			? 'markdown-export-' . gmdate( 'Ymd-His' ) . '.zip'
+			? 'fangtao-md-io-export-' . gmdate( 'Ymd-His' ) . '.zip'
 			: $this->article_directory( $posts[0] ) . '.zip';
 
 		return array(
@@ -159,7 +160,7 @@ final class FTMZI_Exporter {
 			if ( true !== $opened ) {
 				return new WP_Error(
 					'ftmzi_export_open',
-					__( '无法创建 ZIP 压缩包。', 'fangtao-markdown-zip-importer' )
+					__( '无法创建 ZIP 压缩包。', 'fangtao-md-io' )
 				);
 			}
 
@@ -170,7 +171,7 @@ final class FTMZI_Exporter {
 		if ( ! extension_loaded( 'zlib' ) ) {
 			return new WP_Error(
 				'ftmzi_export_zlib_extension',
-				__( '服务器未启用 PHP ZIP 或 zlib 扩展，无法创建压缩包。', 'fangtao-markdown-zip-importer' )
+				__( '服务器未启用 PHP ZIP 或 zlib 扩展，无法创建压缩包。', 'fangtao-md-io' )
 			);
 		}
 
@@ -348,7 +349,7 @@ final class FTMZI_Exporter {
 				'ftmzi_export_markdown',
 				sprintf(
 					/* translators: %s: post title. */
-					__( '无法写入文章：%s', 'fangtao-markdown-zip-importer' ),
+					__( '无法写入文章：%s', 'fangtao-md-io' ),
 					get_the_title( $post )
 				)
 			);
@@ -376,7 +377,7 @@ final class FTMZI_Exporter {
 		if ( ! $loaded ) {
 			return new WP_Error(
 				'ftmzi_export_html',
-				__( '文章 HTML 内容无法解析。', 'fangtao-markdown-zip-importer' )
+				__( '文章 HTML 内容无法解析。', 'fangtao-md-io' )
 			);
 		}
 
@@ -385,7 +386,7 @@ final class FTMZI_Exporter {
 		if ( ! $root ) {
 			return new WP_Error(
 				'ftmzi_export_html_root',
-				__( '文章 HTML 内容缺少根节点。', 'fangtao-markdown-zip-importer' )
+				__( '文章 HTML 内容缺少根节点。', 'fangtao-md-io' )
 			);
 		}
 
@@ -756,13 +757,13 @@ final class FTMZI_Exporter {
 	 */
 	private function media_label( $tag ) {
 		if ( 'audio' === $tag ) {
-			return __( '音频', 'fangtao-markdown-zip-importer' );
+			return __( '音频', 'fangtao-md-io' );
 		}
 
 		if ( 'iframe' === $tag ) {
-			return __( '嵌入内容', 'fangtao-markdown-zip-importer' );
+			return __( '嵌入内容', 'fangtao-md-io' );
 		}
 
-		return __( '视频', 'fangtao-markdown-zip-importer' );
+		return __( '视频', 'fangtao-md-io' );
 	}
 }

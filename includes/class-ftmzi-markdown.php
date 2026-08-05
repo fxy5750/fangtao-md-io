@@ -2,47 +2,141 @@
 /**
  * Markdown conversion and Front Matter helpers.
  *
- * @package Fangtao_Markdown_Zip_Importer
+ * @package Fangtao_MD_IO
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use League\CommonMark\GithubFlavoredMarkdownConverter;
-
 final class FTMZI_Markdown {
+
+	const DEFAULT_PARSER = 'parsedown';
+
+	/**
+	 * Get supported Markdown parsers and their syntax flavors.
+	 *
+	 * @return array<string, array{label: string, flavor: string, class: string}>
+	 */
+	public static function get_parsers() {
+		return array(
+			'parsedown'          => array(
+				'label'  => 'Parsedown',
+				'flavor' => __( 'GitHub 风格', 'fangtao-md-io' ),
+				'class'  => 'Parsedown',
+			),
+			'parsedown_extra'    => array(
+				'label'  => 'Parsedown Extra',
+				'flavor' => __( 'Extra 风格', 'fangtao-md-io' ),
+				'class'  => 'ParsedownExtra',
+			),
+			'cebe_markdown'      => array(
+				'label'  => 'Cebe Markdown',
+				'flavor' => __( '传统风格', 'fangtao-md-io' ),
+				'class'  => 'cebe\\markdown\\Markdown',
+			),
+			'cebe_github'        => array(
+				'label'  => 'Cebe Markdown GitHub',
+				'flavor' => __( 'GitHub 风格', 'fangtao-md-io' ),
+				'class'  => 'cebe\\markdown\\GithubMarkdown',
+			),
+			'cebe_extra'         => array(
+				'label'  => 'Cebe Markdown Extra',
+				'flavor' => __( 'Extra 风格', 'fangtao-md-io' ),
+				'class'  => 'cebe\\markdown\\MarkdownExtra',
+			),
+		);
+	}
+
+	/**
+	 * Validate a parser key.
+	 *
+	 * @param string $parser Parser key.
+	 * @return string
+	 */
+	public static function sanitize_parser( $parser ) {
+		$parser = sanitize_key( $parser );
+
+		return isset( self::get_parsers()[ $parser ] ) ? $parser : self::DEFAULT_PARSER;
+	}
+
+	/**
+	 * Get unavailable parser labels.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function get_missing_parsers() {
+		$missing = array();
+
+		foreach ( self::get_parsers() as $parser ) {
+			if ( ! class_exists( $parser['class'] ) ) {
+				$missing[] = $parser['label'];
+			}
+		}
+
+		return $missing;
+	}
 
 	/**
 	 * Convert Markdown to sanitized HTML.
 	 *
 	 * @param string $markdown Markdown source.
+	 * @param string $parser   Parser key.
 	 * @return string|WP_Error
 	 */
-	public function convert( $markdown ) {
-		if ( ! class_exists( GithubFlavoredMarkdownConverter::class ) ) {
+	public function convert( $markdown, $parser = self::DEFAULT_PARSER ) {
+		$parser  = self::sanitize_parser( $parser );
+		$parsers = self::get_parsers();
+
+		if ( ! class_exists( $parsers[ $parser ]['class'] ) ) {
 			return new WP_Error(
 				'ftmzi_markdown_dependency',
-				__( 'Markdown 解析组件未安装，请重新安装本插件。', 'fangtao-markdown-zip-importer' )
+				sprintf(
+					/* translators: %s: parser name. */
+					__( 'Markdown 解析组件未安装：%s。请重新安装本插件。', 'fangtao-md-io' ),
+					$parsers[ $parser ]['label']
+				)
 			);
 		}
 
 		try {
-			$converter = new GithubFlavoredMarkdownConverter(
-				array(
-					'html_input'         => 'strip',
-					'allow_unsafe_links' => false,
-					'max_nesting_level'  => 50,
-				)
-			);
+			switch ( $parser ) {
+				case 'parsedown_extra':
+					$converter = new ParsedownExtra();
+					$converter->setSafeMode( true );
+					$html = $converter->text( $markdown );
+					break;
 
-			return wp_kses_post( (string) $converter->convert( $markdown ) );
+				case 'cebe_markdown':
+					$converter = new cebe\markdown\Markdown();
+					$html      = $converter->parse( $markdown );
+					break;
+
+				case 'cebe_github':
+					$converter = new cebe\markdown\GithubMarkdown();
+					$html      = $converter->parse( $markdown );
+					break;
+
+				case 'cebe_extra':
+					$converter = new cebe\markdown\MarkdownExtra();
+					$html      = $converter->parse( $markdown );
+					break;
+
+				case 'parsedown':
+				default:
+					$converter = new Parsedown();
+					$converter->setSafeMode( true );
+					$html = $converter->text( $markdown );
+					break;
+			}
+
+			return wp_kses_post( (string) $html );
 		} catch ( Throwable $exception ) {
 			return new WP_Error(
 				'ftmzi_markdown_conversion',
 				sprintf(
 					/* translators: %s: parser error. */
-					__( 'Markdown 转换失败：%s', 'fangtao-markdown-zip-importer' ),
+					__( 'Markdown 转换失败：%s', 'fangtao-md-io' ),
 					$exception->getMessage()
 				)
 			);

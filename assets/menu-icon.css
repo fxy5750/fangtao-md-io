@@ -1,9 +1,9 @@
-#adminmenu #toplevel_page_fangtao-markdown {
+#adminmenu #toplevel_page_fangtao-md-io {
 	margin-top: 12px;
 	position: relative;
 }
 
-#adminmenu #toplevel_page_fangtao-markdown::before {
+#adminmenu #toplevel_page_fangtao-md-io::before {
 	background: var(--aas-border, #d9d9d9);
 	content: "";
 	height: 1px;
@@ -13,7 +13,7 @@
 	top: -6px;
 }
 
-#adminmenu #toplevel_page_fangtao-markdown .wp-menu-image::before {
+#adminmenu #toplevel_page_fangtao-md-io .wp-menu-image::before {
 	background-color: currentColor;
 	content: "";
 	height: 20px;

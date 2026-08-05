@@ -1,23 +1,25 @@
-# Fangtao Markdown Import & Export
+# Fangtao MD IO
 
 English | [Simplified Chinese](README.zh-CN.md)
 
-Fangtao Markdown Import & Export is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local images. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
+Fangtao MD IO is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local images. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
 
 ## Features
 
-- Import `.md` and `.markdown` files.
+- Import `.md`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`, `.mdwn`, `.mdtxt`, `.mdtext`, `.文本`, and `.txt` files case-insensitively.
 - Import ZIP archives containing multiple Markdown documents.
 - Upload local images referenced with relative paths to the WordPress Media Library.
 - Replace imported local image references with WordPress attachment URLs.
 - Use the first imported local image as the featured image when no featured image is specified.
 - Choose the destination post type, post status, and a category for standard posts.
 - Configure the default post status used by the import form.
+- Choose one of five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
+- Configure the default parser while retaining a per-import override.
 - Optionally download remote HTTP(S) images into the WordPress Media Library.
 - Import Front Matter dates, statuses, permalinks, categories, tags, and Media Library featured image IDs.
 - Export a single post from its row action.
 - Export multiple posts from WordPress bulk actions.
-- Export all matching content by post type, category, and tag, with `.md` or `.markdown` filenames.
+- Export all matching content by post type, category, and tag, using any supported Markdown text filename extension.
 - Convert WordPress HTML and block content to GitHub Flavored Markdown.
 - Include local Media Library images in an `images/` directory and use relative Markdown paths.
 - Include supported post metadata in Front Matter.
@@ -39,30 +41,43 @@ The maximum upload size is controlled by the PHP and web server configuration.
 
 ### WordPress Dashboard
 
-1. Download or build a ZIP containing the `fangtao-markdown-zip-importer` plugin directory.
+1. Download or build a ZIP containing the `fangtao-md-io` plugin directory.
 2. Open **Plugins > Add Plugin > Upload Plugin**.
 3. Select the ZIP package and install it.
-4. Activate **Fangtao Markdown Import & Export**.
+4. Activate **Fangtao MD IO**.
 5. Open the new **Markdown** menu in the WordPress Dashboard.
 
 ### Manual Installation
 
-1. Upload the `fangtao-markdown-zip-importer` directory to `wp-content/plugins/`.
+1. Upload the `fangtao-md-io` directory to `wp-content/plugins/`.
 2. Activate the plugin from **Plugins > Installed Plugins**.
 
 ## Importing Markdown
 
 Open **Markdown > Markdown Import**.
 
-1. Select a `.md`, `.markdown`, or `.zip` file.
+1. Select a supported Markdown text file or `.zip` archive.
 2. Choose the destination content type.
 3. When importing standard posts, optionally choose a destination category.
 4. Choose **Draft** or **Publish immediately**.
-5. Click **Upload and Import**.
+5. Choose a Markdown parser.
+6. Click **Upload and Import**.
 
 Each Markdown file creates one WordPress content item. The import screen supports standard posts, pages, and public custom post types that the current user can edit.
 
-Administrators can set the import form's initial post status and enable remote image imports under **Import Settings**. The status can still be changed for each import. Remote image importing is disabled by default.
+Administrators can set the import form's initial post status and Markdown parser, and enable remote image imports under **Import Settings**. The status and parser can still be changed for each import. Remote image importing is disabled by default.
+
+### Markdown Parsers
+
+The importer includes five parser choices and three Markdown syntax flavors:
+
+- **Parsedown** - GitHub flavor
+- **Parsedown Extra** - Extra flavor
+- **Cebe Markdown** - Traditional flavor
+- **Cebe Markdown GitHub** - GitHub flavor
+- **Cebe Markdown Extra** - Extra flavor
+
+Every parser result is sanitized through WordPress before it is stored. Parsedown parsers also run in safe mode.
 
 ### Standalone Markdown
 
@@ -124,7 +139,7 @@ Complex or nested YAML values are not currently supported.
 
 Open **Markdown > Markdown Export** to see the available content types.
 
-The export screen can create a ZIP from all matching content. Choose a content type, optionally filter standard posts by category and tag, and select `.md` or `.markdown` as the document extension.
+The export screen can create a ZIP from all matching content. Choose a content type, optionally filter standard posts by category and tag, and select any supported Markdown text document extension.
 
 ### Single Export
 
@@ -194,7 +209,6 @@ The importer applies the following safeguards:
 
 - The plugin does not provide a Markdown editor or live preview.
 - The plugin does not add tools to the Gutenberg or Classic Editor sidebar.
-- The Markdown parser is currently fixed to GitHub Flavored Markdown.
 - A document management system and REST API are not included.
 - Exported HTML from complex page builders may not have a lossless Markdown representation.
 
@@ -225,6 +239,22 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.6.0
+
+- Renamed the plugin, directory, main plugin file, admin page slugs, text domain, and Composer package to Fangtao MD IO (`fangtao-md-io`).
+- Kept existing `ftmzi_*` settings and internal identifiers compatible so upgrades retain saved configuration.
+
+### 1.5.1
+
+- Added case-insensitive import and export support for `.md`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`, `.mdwn`, `.mdtxt`, `.mdtext`, `.文本`, and `.txt` files, including documents inside ZIP archives.
+
+### 1.5.0
+
+- Added five selectable Markdown parsers: Parsedown, Parsedown Extra, Cebe Markdown, Cebe Markdown GitHub, and Cebe Markdown Extra.
+- Added Traditional, GitHub, and Extra syntax flavor labels with live parser feedback.
+- Added a persistent default parser and a per-import parser override.
+- Bundled the parser dependencies for portable WordPress installation.
 
 ### 1.4.0
 
@@ -272,6 +302,8 @@ No. Each imported Markdown document creates a new content item.
 ## License
 
 GPL-2.0-or-later. See [GNU General Public License v2.0](https://www.gnu.org/licenses/gpl-2.0.html).
+
+Bundled parser libraries are distributed under the MIT License: [Parsedown](https://github.com/erusev/parsedown), [Parsedown Extra](https://github.com/erusev/parsedown-extra), and [cebe/markdown](https://github.com/cebe/markdown).
 
 ## Author
 

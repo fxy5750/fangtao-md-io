@@ -1,11 +1,13 @@
 {
-  "name": "fangtao/markdown-zip-importer",
-  "description": "Import Markdown documents and local images from ZIP archives into WordPress.",
+  "name": "fangtao/md-io",
+  "description": "Import and export Markdown documents, ZIP archives, and related media in WordPress.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "require": {
     "php": ">=7.4",
-    "league/commonmark": "~2.9.0",
+    "cebe/markdown": "1.2.1",
+    "erusev/parsedown": "1.7.4",
+    "erusev/parsedown-extra": "0.8.1",
     "symfony/polyfill-mbstring": "^1.31"
   },
   "config": {

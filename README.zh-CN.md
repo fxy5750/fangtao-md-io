@@ -1,23 +1,25 @@
-# 房淘 Markdown 导入导出
+# Fangtao MD IO
 
 [English](README.md) | 简体中文
 
-房淘 Markdown 导入导出是一款用于在 Markdown 文件与 WordPress 之间迁移内容的插件。它可以导入单个 Markdown 文档，也可以导入包含多个 Markdown 文件和本地图片的 ZIP 压缩包；同时支持将单篇或多篇 WordPress 内容导出为便于迁移和备份的 Markdown ZIP。
+Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容的插件。它可以导入单个 Markdown 文档，也可以导入包含多个 Markdown 文件和本地图片的 ZIP 压缩包；同时支持将单篇或多篇 WordPress 内容导出为便于迁移和备份的 Markdown ZIP。
 
 ## 功能特性
 
-- 导入 `.md` 和 `.markdown` 文件。
+- 导入 `.md`、`.markdown`、`.mdown`、`.mkdn`、`.mkd`、`.mdwn`、`.mdtxt`、`.mdtext`、`.文本` 和 `.txt` 文件，扩展名不区分大小写。
 - 导入包含多份 Markdown 文档的 ZIP 压缩包。
 - 将 Markdown 相对路径引用的本地图片导入 WordPress 媒体库。
 - 自动将正文中的本地图片引用替换为 WordPress 附件地址。
 - 未指定特色图片时，可将首张导入的本地图片设为特色图片。
 - 导入时选择目标文章类型、文章状态，并可为普通文章选择分类。
 - 设置导入表单默认使用草稿或立即发布。
+- 在五种 Markdown 解析器中选择，覆盖传统、GitHub 和 Extra 三种语法风格。
+- 保存默认解析器，同时允许每次导入临时切换。
 - 可选将远程 HTTP(S) 图片下载到 WordPress 媒体库。
 - 从 Front Matter 导入时间、状态、永久链接、分类、标签和媒体库特色图片 ID。
 - 从内容列表的行操作中导出单篇内容。
 - 通过 WordPress 批量操作导出多篇内容。
-- 按内容类型、分类和标签筛选全部匹配内容，并选择 `.md` 或 `.markdown` 扩展名导出。
+- 按内容类型、分类和标签筛选全部匹配内容，并使用任一受支持的 Markdown 文本扩展名导出。
 - 将 WordPress HTML 和区块内容转换为 GitHub Flavored Markdown。
 - 将本地媒体库图片写入 `images/` 目录，并在 Markdown 中使用相对路径。
 - 在导出的 Markdown 中包含已支持的 Front Matter 元数据。
@@ -39,30 +41,43 @@
 
 ### 通过 WordPress 后台安装
 
-1. 下载或打包包含 `fangtao-markdown-zip-importer` 目录的插件 ZIP。
+1. 下载或打包包含 `fangtao-md-io` 目录的插件 ZIP。
 2. 打开 **插件 > 安装插件 > 上传插件**。
 3. 选择 ZIP 并完成安装。
-4. 启用 **房淘 Markdown 导入导出**。
+4. 启用 **Fangtao MD IO**。
 5. 在 WordPress 后台打开新增的 **Markdown** 菜单。
 
 ### 手动安装
 
-1. 将 `fangtao-markdown-zip-importer` 目录上传到 `wp-content/plugins/`。
+1. 将 `fangtao-md-io` 目录上传到 `wp-content/plugins/`。
 2. 在 **插件 > 已安装插件** 中启用插件。
 
 ## 导入 Markdown
 
 打开 **Markdown > Markdown 导入**。
 
-1. 选择 `.md`、`.markdown` 或 `.zip` 文件。
+1. 选择支持的 Markdown 文本文件或 `.zip` 压缩包。
 2. 选择导入到的内容类型。
 3. 导入普通文章时，可选择要归入的分类。
 4. 选择 **草稿** 或 **立即发布**。
-5. 点击 **上传并导入**。
+5. 选择 Markdown 解析器。
+6. 点击 **上传并导入**。
 
 每个 Markdown 文件会创建一篇新的 WordPress 内容。导入页面支持文章、页面，以及当前用户有权编辑的公开自定义文章类型。
 
-管理员可在页面底部的 **导入设置** 中保存表单默认使用的文章状态，并选择是否导入远程图片；执行单次导入时仍可临时修改状态。远程图片导入默认关闭。
+管理员可在页面底部的 **导入设置** 中保存表单默认使用的文章状态和 Markdown 解析器，并选择是否导入远程图片；执行单次导入时仍可临时修改状态和解析器。远程图片导入默认关闭。
+
+### Markdown 解析器
+
+导入器包含五种解析器，覆盖三种 Markdown 语法风格：
+
+- **Parsedown** - GitHub 风格
+- **Parsedown Extra** - Extra 风格
+- **Cebe Markdown** - 传统风格
+- **Cebe Markdown GitHub** - GitHub 风格
+- **Cebe Markdown Extra** - Extra 风格
+
+所有解析结果写入数据库前都会经过 WordPress 内容清理，Parsedown 系列同时启用安全模式。
 
 ### 导入单个 Markdown
 
@@ -124,7 +139,7 @@ featured_image: images/cover.jpg
 
 打开 **Markdown > Markdown 导出**，可以查看支持导出的内容类型。
 
-导出页面可以按内容类型导出全部匹配内容；普通文章还可按分类和标签筛选，并选择内部文档使用 `.md` 或 `.markdown` 扩展名。
+导出页面可以按内容类型导出全部匹配内容；普通文章还可按分类和标签筛选，并选择任一受支持的 Markdown 文本扩展名。
 
 ### 单篇导出
 
@@ -194,7 +209,6 @@ article-two-456/
 
 - 暂不提供 Markdown 编辑器和实时预览。
 - 暂未在 Gutenberg 或经典编辑器侧边栏提供工具。
-- Markdown 解析器目前固定为 GitHub Flavored Markdown。
 - 暂不包含内部文档管理系统和 REST API。
 - 复杂页面构建器生成的 HTML 无法保证无损转换为 Markdown。
 
@@ -225,6 +239,22 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.6.0
+
+- 插件名称、目录、主文件、后台页面 slug、文本域和 Composer 包名统一更名为 Fangtao MD IO（`fangtao-md-io`）。
+- 保留已有 `ftmzi_*` 设置键和内部标识，升级后继续沿用原有配置。
+
+### 1.5.1
+
+- 新增 `.md`、`.markdown`、`.mdown`、`.mkdn`、`.mkd`、`.mdwn`、`.mdtxt`、`.mdtext`、`.文本` 和 `.txt` 导入、ZIP 内识别与导出支持；扩展名不区分大小写。
+
+### 1.5.0
+
+- 增加 Parsedown、Parsedown Extra、Cebe Markdown、Cebe Markdown GitHub 和 Cebe Markdown Extra 五种可选解析器。
+- 增加传统、GitHub、Extra 三种风格标识，并在切换解析器时实时显示当前风格。
+- 增加可持久保存的默认解析器，并支持单次导入临时切换。
+- 将解析器依赖随插件打包，迁移到其他 WordPress 站点时无需再运行 Composer。
 
 ### 1.4.0
 
@@ -272,6 +302,8 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 ## 开源协议
 
 GPL-2.0-or-later，详见 [GNU General Public License v2.0](https://www.gnu.org/licenses/gpl-2.0.html)。
+
+随插件打包的解析器使用 MIT 协议：[Parsedown](https://github.com/erusev/parsedown)、[Parsedown Extra](https://github.com/erusev/parsedown-extra) 和 [cebe/markdown](https://github.com/cebe/markdown)。
 
 ## 作者
 
