@@ -11,12 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class FTMZI_Importer {
 
-	const MAX_EXTRACTED_SIZE    = 209715200;
-	const MAX_ARCHIVE_SIZE      = 209715200;
-	const MAX_ARCHIVE_ENTRIES   = 500;
-	const MAX_MARKDOWN_SIZE     = 2097152;
-	const MAX_IMAGE_SIZE        = 20971520;
-	const DOCUMENT_EXTENSIONS   = array( 'md', 'markdown', 'mdown', 'mkdn', 'mkd', 'mdwn', 'mdtxt', 'mdtext', '文本', 'txt' );
+	const FALLBACK_UPLOAD_SIZE             = 209715200;
+	const DEFAULT_ARCHIVE_ENTRIES          = 500;
+	const DOCUMENT_EXTENSIONS              = array( 'md', 'markdown', 'mdown', 'mkdn', 'mkd', 'mdwn', 'mdtxt', 'mdtext', '文本', 'txt' );
+	const ALLOWED_ASSET_EXTENSIONS_OPTION  = 'ftmzi_allowed_asset_extensions';
+	const MAX_ARCHIVE_SIZE_OPTION          = 'ftmzi_max_archive_size_mb';
+	const MAX_EXTRACTED_SIZE_OPTION        = 'ftmzi_max_extracted_size_mb';
+	const MAX_MARKDOWN_SIZE_OPTION         = 'ftmzi_max_markdown_size_mb';
+	const MAX_ASSET_SIZE_OPTION            = 'ftmzi_max_asset_size_mb';
+	const MAX_ARCHIVE_ENTRIES_OPTION       = 'ftmzi_max_archive_entries';
 
 	/**
 	 * Markdown helper.
@@ -37,6 +40,109 @@ final class FTMZI_Importer {
 	 */
 	public function __construct() {
 		$this->markdown = new FTMZI_Markdown();
+	}
+
+	/**
+	 * Return safe asset extensions grouped for the settings screen.
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	public static function get_asset_groups() {
+		return array(
+			'image'    => array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' ),
+			'video'    => array( 'mp4', 'm4v', 'mov', 'wmv', 'avi', 'mpg', 'mpeg', 'webm', 'ogv', '3gp', '3g2' ),
+			'audio'    => array( 'mp3', 'm4a', 'ogg', 'wav' ),
+			'document' => array( 'pdf' ),
+		);
+	}
+
+	/**
+	 * Return every asset extension supported by the importer.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function get_supported_asset_extensions() {
+		$extensions = array();
+
+		foreach ( self::get_asset_groups() as $group ) {
+			$extensions = array_merge( $extensions, $group );
+		}
+
+		return array_values( array_unique( $extensions ) );
+	}
+
+	/**
+	 * Sanitize a selected asset-extension list.
+	 *
+	 * @param mixed $extensions Submitted extensions.
+	 * @return array<int, string>
+	 */
+	public static function sanitize_asset_extensions( $extensions ) {
+		$extensions = is_array( $extensions ) ? $extensions : array();
+		$extensions = array_map( 'sanitize_key', $extensions );
+
+		return array_values( array_intersect( self::get_supported_asset_extensions(), $extensions ) );
+	}
+
+	/**
+	 * Return configured ZIP asset extensions.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function get_allowed_asset_extensions() {
+		$stored = get_option( self::ALLOWED_ASSET_EXTENSIONS_OPTION, null );
+
+		if ( null === $stored ) {
+			return self::get_supported_asset_extensions();
+		}
+
+		return self::sanitize_asset_extensions( $stored );
+	}
+
+	/**
+	 * Resolve the effective import limits in bytes and entries.
+	 *
+	 * A zero or empty size option follows the effective PHP/WordPress upload
+	 * limit. Actual bytes are still checked during extraction.
+	 *
+	 * @return array<string, int>
+	 */
+	public static function get_limits() {
+		$php_limit = (int) wp_max_upload_size();
+
+		if ( $php_limit <= 0 ) {
+			$php_limit = self::FALLBACK_UPLOAD_SIZE;
+		}
+
+		$entries = absint( get_option( self::MAX_ARCHIVE_ENTRIES_OPTION, 0 ) );
+
+		return array(
+			'php_upload_size' => $php_limit,
+			'archive_size'    => self::size_option( self::MAX_ARCHIVE_SIZE_OPTION, $php_limit ),
+			'extracted_size'  => self::size_option( self::MAX_EXTRACTED_SIZE_OPTION, $php_limit ),
+			'markdown_size'   => self::size_option( self::MAX_MARKDOWN_SIZE_OPTION, $php_limit ),
+			'asset_size'      => self::size_option( self::MAX_ASSET_SIZE_OPTION, $php_limit ),
+			'archive_entries' => $entries ? min( $entries, 10000 ) : self::DEFAULT_ARCHIVE_ENTRIES,
+		);
+	}
+
+	/**
+	 * Convert a configured megabyte value to bytes.
+	 *
+	 * @param string $option_name Option key.
+	 * @param int    $fallback    Default byte limit.
+	 * @return int
+	 */
+	private static function size_option( $option_name, $fallback ) {
+		$megabytes = absint( get_option( $option_name, 0 ) );
+
+		if ( ! $megabytes ) {
+			return $fallback;
+		}
+
+		$max_megabytes = min( 102400, (int) floor( PHP_INT_MAX / MB_IN_BYTES ) );
+
+		return min( $megabytes, $max_megabytes ) * MB_IN_BYTES;
 	}
 
 	/**
@@ -179,15 +285,16 @@ final class FTMZI_Importer {
 			);
 		}
 
+		$limits      = self::get_limits();
 		$actual_size = is_file( $upload['tmp_name'] ) ? filesize( $upload['tmp_name'] ) : false;
-		$size_limit  = 'zip' === $extension ? self::MAX_ARCHIVE_SIZE : self::MAX_MARKDOWN_SIZE;
+		$size_limit  = 'zip' === $extension ? $limits['archive_size'] : $limits['markdown_size'];
 
 		if ( false === $actual_size || $actual_size > $size_limit ) {
 			return new WP_Error(
 				'ftmzi_upload_size',
 				'zip' === $extension
-					? __( 'ZIP 文件不能超过 200 MB。', 'fangtao-md-io' )
-					: __( 'Markdown 文件不能超过 2 MB。', 'fangtao-md-io' )
+					? sprintf( __( 'ZIP 文件不能超过 %s。', 'fangtao-md-io' ), size_format( $size_limit ) )
+					: sprintf( __( 'Markdown 文件不能超过 %s。', 'fangtao-md-io' ), size_format( $size_limit ) )
 			);
 		}
 
@@ -217,6 +324,7 @@ final class FTMZI_Importer {
 	 * @return array|WP_Error
 	 */
 	private function extract_archive_ziparchive( $zip_path, $temp_dir ) {
+		$limits = self::get_limits();
 		$zip  = new ZipArchive();
 		$open = $zip->open( $zip_path );
 
@@ -227,12 +335,12 @@ final class FTMZI_Importer {
 			);
 		}
 
-		if ( $zip->numFiles > self::MAX_ARCHIVE_ENTRIES ) {
+		if ( $zip->numFiles > $limits['archive_entries'] ) {
 			$zip->close();
 
 			return new WP_Error(
 				'ftmzi_archive_entries',
-				__( 'ZIP 内文件数量不能超过 500 个。', 'fangtao-md-io' )
+				sprintf( __( 'ZIP 内文件数量不能超过 %d 个。', 'fangtao-md-io' ), $limits['archive_entries'] )
 			);
 		}
 
@@ -240,7 +348,7 @@ final class FTMZI_Importer {
 		$markdown_files = array();
 		$total_size     = 0;
 		$actual_total   = 0;
-		$allowed_images = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' );
+		$allowed_assets = self::get_allowed_asset_extensions();
 		$allowed_docs   = self::DOCUMENT_EXTENSIONS;
 
 		for ( $index = 0; $index < $zip->numFiles; $index++ ) {
@@ -278,12 +386,12 @@ final class FTMZI_Importer {
 
 			$extension = strtolower( pathinfo( $archive_path, PATHINFO_EXTENSION ) );
 
-			if ( ! in_array( $extension, array_merge( $allowed_docs, $allowed_images ), true ) ) {
+			if ( ! in_array( $extension, array_merge( $allowed_docs, $allowed_assets ), true ) ) {
 				continue;
 			}
 
 			$file_size = isset( $stat['size'] ) ? (int) $stat['size'] : 0;
-			$size_limit = in_array( $extension, $allowed_docs, true ) ? self::MAX_MARKDOWN_SIZE : self::MAX_IMAGE_SIZE;
+			$size_limit = in_array( $extension, $allowed_docs, true ) ? $limits['markdown_size'] : $limits['asset_size'];
 
 			if ( $file_size > $size_limit ) {
 				$zip->close();
@@ -300,12 +408,12 @@ final class FTMZI_Importer {
 
 			$total_size += $file_size;
 
-			if ( $total_size > self::MAX_EXTRACTED_SIZE ) {
+			if ( $total_size > $limits['extracted_size'] ) {
 				$zip->close();
 
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-md-io' )
+					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 
@@ -363,13 +471,13 @@ final class FTMZI_Importer {
 
 			$actual_total += $copied_size;
 
-			if ( $actual_total > self::MAX_EXTRACTED_SIZE ) {
+			if ( $actual_total > $limits['extracted_size'] ) {
 				@unlink( $destination );
 				$zip->close();
 
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-md-io' )
+					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 
@@ -404,6 +512,7 @@ final class FTMZI_Importer {
 	 * @return array|WP_Error
 	 */
 	private function extract_archive_wordpress( $zip_path, $temp_dir ) {
+		$limits = self::get_limits();
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
 
@@ -417,10 +526,10 @@ final class FTMZI_Importer {
 			);
 		}
 
-		if ( count( $entries ) > self::MAX_ARCHIVE_ENTRIES ) {
+		if ( count( $entries ) > $limits['archive_entries'] ) {
 			return new WP_Error(
 				'ftmzi_archive_entries',
-				__( 'ZIP 内文件数量不能超过 500 个。', 'fangtao-md-io' )
+				sprintf( __( 'ZIP 内文件数量不能超过 %d 个。', 'fangtao-md-io' ), $limits['archive_entries'] )
 			);
 		}
 
@@ -428,7 +537,7 @@ final class FTMZI_Importer {
 		$selected_files = array();
 		$markdown_files = array();
 		$total_size     = 0;
-		$allowed_images = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' );
+		$allowed_assets = self::get_allowed_asset_extensions();
 		$allowed_docs   = self::DOCUMENT_EXTENSIONS;
 
 		foreach ( $entries as $entry ) {
@@ -463,12 +572,12 @@ final class FTMZI_Importer {
 
 			$extension = strtolower( pathinfo( $archive_path, PATHINFO_EXTENSION ) );
 
-			if ( ! in_array( $extension, array_merge( $allowed_docs, $allowed_images ), true ) ) {
+			if ( ! in_array( $extension, array_merge( $allowed_docs, $allowed_assets ), true ) ) {
 				continue;
 			}
 
 			$file_size  = isset( $entry['size'] ) ? (int) $entry['size'] : 0;
-			$size_limit = in_array( $extension, $allowed_docs, true ) ? self::MAX_MARKDOWN_SIZE : self::MAX_IMAGE_SIZE;
+			$size_limit = in_array( $extension, $allowed_docs, true ) ? $limits['markdown_size'] : $limits['asset_size'];
 
 			if ( $file_size > $size_limit ) {
 				return new WP_Error(
@@ -483,10 +592,10 @@ final class FTMZI_Importer {
 
 			$total_size += $file_size;
 
-			if ( $total_size > self::MAX_EXTRACTED_SIZE ) {
+			if ( $total_size > $limits['extracted_size'] ) {
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-md-io' )
+					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 
@@ -538,7 +647,7 @@ final class FTMZI_Importer {
 			}
 
 			$extension   = strtolower( pathinfo( $archive_path, PATHINFO_EXTENSION ) );
-			$size_limit  = in_array( $extension, $allowed_docs, true ) ? self::MAX_MARKDOWN_SIZE : self::MAX_IMAGE_SIZE;
+			$size_limit  = in_array( $extension, $allowed_docs, true ) ? $limits['markdown_size'] : $limits['asset_size'];
 			$actual_size = filesize( $destination );
 
 			if ( false === $actual_size || $actual_size > $size_limit ) {
@@ -554,10 +663,10 @@ final class FTMZI_Importer {
 
 			$actual_total += $actual_size;
 
-			if ( $actual_total > self::MAX_EXTRACTED_SIZE ) {
+			if ( $actual_total > $limits['extracted_size'] ) {
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					__( 'ZIP 解压后的文件总量不能超过 200 MB。', 'fangtao-md-io' )
+					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 		}
@@ -661,6 +770,13 @@ final class FTMZI_Importer {
 			$first_attachment_id,
 			$import_remote_images
 		);
+		$markdown_content    = $this->replace_asset_references(
+			$markdown_content,
+			$markdown_path,
+			$files,
+			$post_id,
+			$warnings
+		);
 		$html                = $this->markdown->convert( $markdown_content, $markdown_parser );
 
 		if ( is_wp_error( $html ) ) {
@@ -745,14 +861,19 @@ final class FTMZI_Importer {
 	 */
 	private function replace_image_references( $markdown, $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images ) {
 		$pattern = '/!\[([^\]]*)\]\(\s*(?:<([^>]+)>|([^\s\)]+))(?:\s+((["\']).*?\5))?\s*\)/u';
+		$allowed_assets = self::get_allowed_asset_extensions();
 
 		return preg_replace_callback(
 			$pattern,
-			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images ) {
+			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images, $allowed_assets ) {
 				$alt       = isset( $matches[1] ) ? sanitize_text_field( $matches[1] ) : '';
 				$reference = ! empty( $matches[2] ) ? $matches[2] : $matches[3];
 
 				if ( $this->is_external_reference( $reference ) && ! ( $import_remote_images && $this->is_remote_http_reference( $reference ) ) ) {
+					return $matches[0];
+				}
+
+				if ( ! $this->is_external_reference( $reference ) && ! in_array( $this->reference_extension( $reference ), $allowed_assets, true ) ) {
 					return $matches[0];
 				}
 
@@ -783,6 +904,73 @@ final class FTMZI_Importer {
 	}
 
 	/**
+	 * Import local assets referenced by Markdown links and media shortcodes.
+	 *
+	 * @param string $markdown      Markdown source.
+	 * @param string $markdown_path Archive-relative Markdown path.
+	 * @param array  $files         Extracted file map.
+	 * @param int    $post_id       Parent post ID.
+	 * @param array  $warnings      Import warnings.
+	 * @return string
+	 */
+	private function replace_asset_references( $markdown, $markdown_path, $files, $post_id, &$warnings ) {
+		$allowed_assets = self::get_allowed_asset_extensions();
+		$link_pattern   = '/(?<!!)\[([^\]]+)\]\(\s*(?:<([^>]+)>|([^\s\)]+))(?:\s+((["\']).*?\5))?\s*\)/u';
+
+		$markdown = preg_replace_callback(
+			$link_pattern,
+			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, $allowed_assets ) {
+				$reference = ! empty( $matches[2] ) ? $matches[2] : $matches[3];
+
+				if ( $this->is_external_reference( $reference ) || ! in_array( $this->reference_extension( $reference ), $allowed_assets, true ) ) {
+					return $matches[0];
+				}
+
+				$imported = $this->import_asset_reference( $reference, $markdown_path, $files, $post_id, '' );
+
+				if ( is_wp_error( $imported ) ) {
+					$warnings[] = $imported->get_error_message();
+					return $matches[0];
+				}
+
+				$title = ! empty( $matches[4] ) ? ' ' . $matches[4] : '';
+
+				return sprintf( '[%1$s](%2$s%3$s)', $matches[1], $imported['url'], $title );
+			},
+			$markdown
+		);
+
+		return preg_replace_callback(
+			'/\[(video|audio)\b([^\]]*)\]/iu',
+			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, $allowed_assets ) {
+				$attributes = preg_replace_callback(
+					'/\b(src|mp4|m4v|mov|webm|ogv|wmv|mp3|m4a|ogg|wav)=(["\'])(.*?)\2/iu',
+					function ( $attribute ) use ( $markdown_path, $files, $post_id, &$warnings, $allowed_assets ) {
+						$reference = $attribute[3];
+
+						if ( $this->is_external_reference( $reference ) || ! in_array( $this->reference_extension( $reference ), $allowed_assets, true ) ) {
+							return $attribute[0];
+						}
+
+						$imported = $this->import_asset_reference( $reference, $markdown_path, $files, $post_id, '' );
+
+						if ( is_wp_error( $imported ) ) {
+							$warnings[] = $imported->get_error_message();
+							return $attribute[0];
+						}
+
+						return $attribute[1] . '=' . $attribute[2] . $imported['url'] . $attribute[2];
+					},
+					$matches[2]
+				);
+
+				return '[' . strtolower( $matches[1] ) . $attributes . ']';
+			},
+			$markdown
+		);
+	}
+
+	/**
 	 * Import one archive image reference.
 	 *
 	 * @param string $reference     Markdown image reference.
@@ -793,6 +981,20 @@ final class FTMZI_Importer {
 	 * @return array|WP_Error
 	 */
 	private function import_image_reference( $reference, $markdown_path, $files, $post_id, $alt ) {
+		return $this->import_asset_reference( $reference, $markdown_path, $files, $post_id, $alt );
+	}
+
+	/**
+	 * Import one archive asset reference through the Media Library.
+	 *
+	 * @param string $reference     Asset reference.
+	 * @param string $markdown_path Archive-relative Markdown path.
+	 * @param array  $files         Extracted file map.
+	 * @param int    $post_id       Parent post ID.
+	 * @param string $alt           Optional image alt text.
+	 * @return array|WP_Error
+	 */
+	private function import_asset_reference( $reference, $markdown_path, $files, $post_id, $alt ) {
 		$reference = rawurldecode( preg_replace( '/[?#].*$/', '', $reference ) );
 		$base_dir  = dirname( $markdown_path );
 		$base_dir  = '.' === $base_dir ? '' : $base_dir;
@@ -805,10 +1007,10 @@ final class FTMZI_Importer {
 
 		if ( false === $resolved || empty( $files[ $resolved ] ) ) {
 			return new WP_Error(
-				'ftmzi_missing_image',
+				'ftmzi_missing_asset',
 				sprintf(
-					/* translators: %s: image reference. */
-					__( '未在导入文件中找到图片：%s', 'fangtao-md-io' ),
+					/* translators: %s: asset reference. */
+					__( '未在导入文件中找到素材：%s', 'fangtao-md-io' ),
 					sanitize_text_field( $reference )
 				)
 			);
@@ -826,10 +1028,10 @@ final class FTMZI_Importer {
 
 		if ( ! $temp_file || ! copy( $files[ $resolved ], $temp_file ) ) {
 			return new WP_Error(
-				'ftmzi_prepare_image',
+				'ftmzi_prepare_asset',
 				sprintf(
-					/* translators: %s: image path. */
-					__( '无法准备图片：%s', 'fangtao-md-io' ),
+					/* translators: %s: asset path. */
+					__( '无法准备素材：%s', 'fangtao-md-io' ),
 					$resolved
 				)
 			);
@@ -849,8 +1051,8 @@ final class FTMZI_Importer {
 			return new WP_Error(
 				'ftmzi_media_import',
 				sprintf(
-					/* translators: 1: image path, 2: media import error. */
-					__( '图片导入失败（%1$s）：%2$s', 'fangtao-md-io' ),
+					/* translators: 1: asset path, 2: media import error. */
+					__( '素材导入失败（%1$s）：%2$s', 'fangtao-md-io' ),
 					$resolved,
 					$exception->getMessage()
 				)
@@ -866,7 +1068,7 @@ final class FTMZI_Importer {
 			return $attachment_id;
 		}
 
-		if ( $alt ) {
+		if ( $alt && wp_attachment_is_image( $attachment_id ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $alt );
 		}
 
@@ -875,7 +1077,7 @@ final class FTMZI_Importer {
 		if ( ! $url ) {
 			return new WP_Error(
 				'ftmzi_attachment_url',
-				__( '图片已入库，但无法获取媒体 URL。', 'fangtao-md-io' )
+				__( '素材已入库，但无法获取媒体 URL。', 'fangtao-md-io' )
 			);
 		}
 
@@ -896,6 +1098,7 @@ final class FTMZI_Importer {
 	 * @return array|WP_Error
 	 */
 	private function import_remote_image_reference( $reference, $post_id, $alt ) {
+		$limits    = self::get_limits();
 		$url       = esc_url_raw( $reference );
 		$cache_key = 'remote:' . $url;
 
@@ -923,7 +1126,7 @@ final class FTMZI_Importer {
 				'timeout'             => 20,
 				'stream'              => true,
 				'filename'            => $temp_file,
-				'limit_response_size' => self::MAX_IMAGE_SIZE + 1,
+				'limit_response_size' => $limits['asset_size'] + 1,
 			)
 		);
 
@@ -950,9 +1153,12 @@ final class FTMZI_Importer {
 
 		$remote_size = filesize( $temp_file );
 
-		if ( false === $remote_size || $remote_size > self::MAX_IMAGE_SIZE ) {
+		if ( false === $remote_size || $remote_size > $limits['asset_size'] ) {
 			@unlink( $temp_file );
-			return new WP_Error( 'ftmzi_remote_image_size', __( '远程图片超过 20 MB 限制。', 'fangtao-md-io' ) );
+			return new WP_Error(
+				'ftmzi_remote_image_size',
+				sprintf( __( '远程图片超过 %s 限制。', 'fangtao-md-io' ), size_format( $limits['asset_size'] ) )
+			);
 		}
 
 		$mime       = wp_get_image_mime( $temp_file );
@@ -967,6 +1173,11 @@ final class FTMZI_Importer {
 		if ( ! isset( $extensions[ $mime ] ) ) {
 			@unlink( $temp_file );
 			return new WP_Error( 'ftmzi_remote_image_type', __( '远程文件不是受支持的图片格式。', 'fangtao-md-io' ) );
+		}
+
+		if ( ! in_array( $extensions[ $mime ], self::get_allowed_asset_extensions(), true ) ) {
+			@unlink( $temp_file );
+			return new WP_Error( 'ftmzi_remote_image_extension', __( '远程图片格式未在导入设置中启用。', 'fangtao-md-io' ) );
 		}
 
 		$url_path = wp_parse_url( $url, PHP_URL_PATH );
@@ -1096,6 +1307,18 @@ final class FTMZI_Importer {
 	 */
 	private function is_remote_http_reference( $reference ) {
 		return (bool) preg_match( '~^https?://~i', trim( $reference ) );
+	}
+
+	/**
+	 * Return the normalized extension from an asset reference.
+	 *
+	 * @param string $reference Asset reference.
+	 * @return string
+	 */
+	private function reference_extension( $reference ) {
+		$path = preg_replace( '/[?#].*$/', '', rawurldecode( trim( $reference ) ) );
+
+		return strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 	}
 
 	/**

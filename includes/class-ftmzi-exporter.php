@@ -40,18 +40,18 @@ final class FTMZI_Exporter {
 	private $archive_prefix = '';
 
 	/**
-	 * Image URL to relative path map for the current article.
+	 * Asset URL to relative path map for the current article.
 	 *
 	 * @var array<string, string>
 	 */
-	private $image_map = array();
+	private $asset_map = array();
 
 	/**
-	 * Used image names for the current article.
+	 * Used asset names for the current article.
 	 *
 	 * @var array<string, bool>
 	 */
-	private $image_names = array();
+	private $asset_names = array();
 
 	/**
 	 * Markdown filename extension used inside the archive.
@@ -288,10 +288,11 @@ final class FTMZI_Exporter {
 	 */
 	private function add_post( $post, $prefix ) {
 		$this->archive_prefix = $prefix;
-		$this->image_map      = array();
-		$this->image_names    = array();
+		$this->asset_map      = array();
+		$this->asset_names    = array();
 
 		$this->add_archive_directory( $prefix . 'images' );
+		$this->add_archive_directory( $prefix . 'media' );
 
 		$html     = has_blocks( $post->post_content ) ? do_blocks( $post->post_content ) : wpautop( $post->post_content );
 		$html     = do_shortcode( $html );
@@ -455,7 +456,7 @@ final class FTMZI_Exporter {
 				return "\n\n---\n\n";
 			case 'a':
 				$href = $node->getAttribute( 'href' );
-				return $href ? '[' . trim( $children ) . '](' . $this->escape_url( $href ) . ')' : $children;
+				return $href ? '[' . trim( $children ) . '](' . $this->escape_url( $this->archive_link_asset( $href ) ) . ')' : $children;
 			case 'img':
 				$src = $node->getAttribute( 'src' );
 				$alt = $this->escape_alt( $node->getAttribute( 'alt' ) );
@@ -476,6 +477,8 @@ final class FTMZI_Exporter {
 				return "\n\n*" . trim( $children ) . "*\n\n";
 			case 'video':
 			case 'audio':
+				$src = $this->media_node_source( $node );
+				return $src ? '[' . $this->media_label( $tag ) . '](' . $this->escape_url( $this->archive_media( $src ) ) . ')' : $children;
 			case 'iframe':
 				$src = $node->getAttribute( 'src' );
 				return $src ? '[' . $this->media_label( $tag ) . '](' . $this->escape_url( $src ) . ')' : $children;
@@ -603,15 +606,62 @@ final class FTMZI_Exporter {
 	 * @return string
 	 */
 	private function archive_image( $source ) {
-		$source = html_entity_decode( trim( $source ), ENT_QUOTES, 'UTF-8' );
+		return $this->archive_asset( $source, 'images', false );
+	}
 
-		if ( isset( $this->image_map[ $source ] ) ) {
-			return $this->image_map[ $source ];
+	/**
+	 * Add a supported local media file to the archive.
+	 *
+	 * @param string $source Media URL.
+	 * @return string
+	 */
+	private function archive_media( $source ) {
+		return $this->archive_asset( $source, 'media', true );
+	}
+
+	/**
+	 * Package a supported local file linked from article content.
+	 *
+	 * @param string $source Linked URL.
+	 * @return string
+	 */
+	private function archive_link_asset( $source ) {
+		$path      = preg_replace( '/[?#].*$/', '', rawurldecode( $source ) );
+		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+
+		if ( ! in_array( $extension, FTMZI_Importer::get_supported_asset_extensions(), true ) ) {
+			return $source;
 		}
 
-		$file = $this->local_image_path( $source );
+		$images    = FTMZI_Importer::get_asset_groups()['image'];
+		$directory = in_array( $extension, $images, true ) ? 'images' : 'media';
+
+		return $this->archive_asset( $source, $directory, true );
+	}
+
+	/**
+	 * Add one local uploads file to the archive.
+	 *
+	 * @param string $source         Asset URL.
+	 * @param string $directory      Archive directory.
+	 * @param bool   $supported_only Require a supported asset extension.
+	 * @return string
+	 */
+	private function archive_asset( $source, $directory, $supported_only ) {
+		$source = html_entity_decode( trim( $source ), ENT_QUOTES, 'UTF-8' );
+		$map_key = $directory . '|' . $source;
+
+		if ( isset( $this->asset_map[ $map_key ] ) ) {
+			return $this->asset_map[ $map_key ];
+		}
+
+		$file = $this->local_upload_path( $source );
 
 		if ( ! $file || ! is_readable( $file ) ) {
+			return $this->escape_url( $source );
+		}
+
+		if ( $supported_only && ! in_array( strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ), FTMZI_Importer::get_supported_asset_extensions(), true ) ) {
 			return $this->escape_url( $source );
 		}
 
@@ -622,19 +672,19 @@ final class FTMZI_Exporter {
 		$candidate = $name;
 		$suffix    = 2;
 
-		while ( isset( $this->image_names[ strtolower( $candidate ) ] ) ) {
+		while ( isset( $this->asset_names[ strtolower( $directory . '/' . $candidate ) ] ) ) {
 			$candidate = $basename . '-' . $suffix . ( $extension ? '.' . $extension : '' );
 			$suffix++;
 		}
 
-		$this->image_names[ strtolower( $candidate ) ] = true;
-		$relative_path = 'images/' . $candidate;
+		$this->asset_names[ strtolower( $directory . '/' . $candidate ) ] = true;
+		$relative_path = $directory . '/' . $candidate;
 
 		if ( ! $this->add_archive_file( $file, $this->archive_prefix . $relative_path ) ) {
 			return $this->escape_url( $source );
 		}
 
-		$this->image_map[ $source ] = $relative_path;
+		$this->asset_map[ $map_key ] = $relative_path;
 
 		return $relative_path;
 	}
@@ -645,7 +695,7 @@ final class FTMZI_Exporter {
 	 * @param string $source Image URL.
 	 * @return string
 	 */
-	private function local_image_path( $source ) {
+	private function local_upload_path( $source ) {
 		$url = $source;
 
 		if ( 0 === strpos( $url, '//' ) ) {
@@ -676,6 +726,30 @@ final class FTMZI_Exporter {
 
 			if ( $this->is_upload_file( $file ) ) {
 				return realpath( $file );
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Return a media element source, including nested source elements.
+	 *
+	 * @param DOMElement $node Audio or video element.
+	 * @return string
+	 */
+	private function media_node_source( $node ) {
+		$src = $node->getAttribute( 'src' );
+
+		if ( $src ) {
+			return $src;
+		}
+
+		foreach ( $node->getElementsByTagName( 'source' ) as $source ) {
+			$src = $source->getAttribute( 'src' );
+
+			if ( $src ) {
+				return $src;
 			}
 		}
 

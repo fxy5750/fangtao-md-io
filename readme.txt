@@ -3,12 +3,12 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.6.1
+Stable tag: 1.7.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Import Markdown and ZIP archives with local images, then export WordPress content as portable Markdown ZIP packages.
+Import Markdown and ZIP archives with local media assets, then export WordPress content as portable Markdown ZIP packages.
 
 == Description ==
 
@@ -18,8 +18,9 @@ Fangtao MD IO provides a focused workflow for moving content between Markdown fi
 
 * Supported Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
 * Import ZIP archives containing multiple Markdown documents.
-* Import JPG, JPEG, PNG, GIF, WebP, and AVIF images referenced with relative paths.
-* Add imported local images to the WordPress Media Library.
+* Select safe image, video, audio, and PDF extensions allowed inside ZIP imports.
+* Add referenced local assets to the WordPress Media Library.
+* Configure ZIP, extracted-content, Markdown, asset, and entry-count limits, following PHP limits by default.
 * Select the destination post type and post status.
 * Assign imported standard posts to an optional category.
 * Configure the default post status used by the import form.
@@ -35,8 +36,8 @@ Fangtao MD IO provides a focused workflow for moving content between Markdown fi
 * Export all matching content by post type, category, and tag.
 * Select any supported Markdown text extension for exported documents.
 * Convert common WordPress HTML and block content to GitHub Flavored Markdown.
-* Package local Media Library images inside an `images` directory.
-* Use relative image references in exported Markdown.
+* Package local Media Library images inside `images` and linked media assets inside `media`.
+* Use relative asset references in exported Markdown.
 * Include title, slug, permalink, excerpt, date, post type, status, categories, tags, and featured image Front Matter.
 
 = ZIP Structure =
@@ -47,6 +48,9 @@ Single export:
 article.md
 images/
   article-image.jpg
+media/
+  room-tour.mp4
+  catalog.pdf
 `
 
 Bulk exports place every item in a separate directory with the same internal structure.
@@ -69,22 +73,29 @@ Parsedown, Parsedown Extra, and cebe/markdown are bundled under the MIT License.
 
 The plugin requires WordPress 6.0 or later and PHP 7.4 or later. ZIP import and export fall back to the PclZip library bundled with WordPress when the PHP ZIP extension is unavailable. The PclZip fallback requires PHP zlib. Markdown conversion uses a bundled compatibility layer when native PHP mbstring is unavailable. HTML-to-Markdown export requires the PHP DOM extension.
 
-= How should I package local images? =
+= How should I package local assets? =
 
-Place Markdown and image files in the same ZIP while preserving their relative paths:
+Place Markdown and asset files in the same ZIP while preserving their relative paths:
 
 `
 articles/
   living-room.md
   images/
     living-room.jpg
+  media/
+    room-tour.mp4
+    catalog.pdf
 `
 
-Reference the image in Markdown as:
+Reference the assets in Markdown as:
 
 `
 ![Living room](images/living-room.jpg)
+[video src="media/room-tour.mp4"]
+[Download catalog](media/catalog.pdf)
 `
+
+Only referenced assets are imported. Administrators can choose the allowed safe image, video, audio, and PDF extensions under **Import Settings**.
 
 = Which Front Matter fields are supported during import? =
 
@@ -103,6 +114,13 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.7.0 =
+
+* Added configurable safe ZIP asset formats for images, video, audio, and PDF files.
+* Added local linked-asset and WordPress video/audio shortcode imports through the Media Library.
+* Added configurable import limits that follow PHP/WordPress upload limits by default.
+* Added relative `media/` packaging for supported local assets during export.
 
 = 1.6.1 =
 

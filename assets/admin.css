@@ -43,6 +43,10 @@
 	max-width: none;
 }
 
+.ftmzi-field input[type="number"] {
+	width: 100%;
+}
+
 .ftmzi-fields-row {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -65,6 +69,39 @@
 
 .ftmzi-field[hidden] {
 	display: none;
+}
+
+.ftmzi-extension-groups {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.ftmzi-extension-group {
+	display: grid;
+	gap: 8px;
+	padding: 14px;
+	border: 1px solid var(--aas-border, #dcdcde);
+	border-radius: 6px;
+	background: var(--aas-bg-soft, #f6f7f7);
+}
+
+.ftmzi-extension-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 14px;
+}
+
+.ftmzi-extension-options label {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.ftmzi-limit-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0 16px;
 }
 
 .ftmzi-card h2 {
@@ -127,6 +164,11 @@
 	}
 
 	.ftmzi-export-types {
+		grid-template-columns: 1fr;
+	}
+
+	.ftmzi-extension-groups,
+	.ftmzi-limit-grid {
 		grid-template-columns: 1fr;
 	}
 

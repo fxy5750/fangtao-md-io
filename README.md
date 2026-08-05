@@ -4,26 +4,27 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Fangtao MD IO is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local images. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
+Fangtao MD IO is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local media assets. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
 
 ## Features
 
 - Supported Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
 - Import ZIP archives containing multiple Markdown documents.
-- Upload local images referenced with relative paths to the WordPress Media Library.
-- Replace imported local image references with WordPress attachment URLs.
+- Select which safe image, video, audio, and PDF extensions may be imported from ZIP packages.
+- Upload referenced local assets to the WordPress Media Library and replace their relative paths with attachment URLs.
 - Use the first imported local image as the featured image when no featured image is specified.
 - Choose the destination post type, post status, and a category for standard posts.
 - Configure the default post status used by the import form.
 - Choose one of five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
 - Configure the default parser while retaining a per-import override.
 - Optionally download remote HTTP(S) images into the WordPress Media Library.
+- Follow the effective PHP upload limit by default or configure separate ZIP, extracted-content, Markdown, asset, and entry-count limits.
 - Import Front Matter dates, statuses, permalinks, categories, tags, and Media Library featured image IDs.
 - Export a single post from its row action.
 - Export multiple posts from WordPress bulk actions.
 - Export all matching content by post type, category, and tag, using any supported Markdown text filename extension.
 - Convert WordPress HTML and block content to GitHub Flavored Markdown.
-- Include local Media Library images in an `images/` directory and use relative Markdown paths.
+- Include local Media Library images in `images/` and linked audio, video, or PDF files in `media/`, using relative Markdown paths.
 - Include supported post metadata in Front Matter.
 - Preserve normal OSS processing when an OSS plugin is configured, while falling back to local media storage when the detected OSS integration is incomplete.
 
@@ -37,7 +38,7 @@ Fangtao MD IO is a WordPress plugin for moving content between Markdown files an
 - Native PHP mbstring is recommended for performance; a bundled compatibility layer is used when it is unavailable
 - A writable WordPress uploads directory
 
-The maximum upload size is controlled by the PHP and web server configuration.
+Import limits follow the effective PHP and WordPress upload limit by default. Administrators can set lower or higher plugin limits, but PHP and the web server can still reject a request before WordPress receives it.
 
 ## Installation
 
@@ -67,7 +68,7 @@ Open **Markdown > Markdown Import**.
 
 Each Markdown file creates one WordPress content item. The import screen supports standard posts, pages, and public custom post types that the current user can edit.
 
-Administrators can set the import form's initial post status and Markdown parser, and enable remote image imports under **Import Settings**. The status and parser can still be changed for each import. Remote image importing is disabled by default.
+Administrators can set the import form's initial post status and Markdown parser, enable remote image imports, choose allowed ZIP asset formats, and configure import limits under **Import Settings**. A blank or zero size limit follows the current PHP/WordPress upload limit. Remote image importing is disabled by default.
 
 ### Markdown Parsers
 
@@ -87,13 +88,15 @@ A standalone Markdown file can be uploaded directly when it does not depend on b
 
 ### ZIP Import
 
-Package Markdown files and their local images together:
+Package Markdown files and their local assets together:
 
 ```text
 articles/
   living-room.md
   images/
     living-room.jpg
+  media/
+    room-tour.mp4
 ```
 
 Reference the image relative to the Markdown file:
@@ -103,6 +106,16 @@ Reference the image relative to the Markdown file:
 ```
 
 During import, supported local images are added to the WordPress Media Library and their references in the generated post are updated.
+
+Use a normal Markdown link for downloadable assets, or a WordPress media shortcode for playable local video and audio:
+
+```markdown
+[Download catalog](media/catalog.pdf)
+[video src="media/room-tour.mp4"]
+[audio src="media/interview.mp3"]
+```
+
+Only referenced assets are added to the Media Library. Raw executable formats are never accepted, even when import formats are configured.
 
 ## Front Matter
 
@@ -197,11 +210,9 @@ Shortcodes are processed before export. Output from complex blocks or third-part
 
 The importer applies the following safeguards:
 
-- Maximum 500 entries per ZIP archive
-- Maximum 200 MB total extracted size
-- Maximum 2 MB per Markdown file
-- Maximum 20 MB per image
-- Supported image formats: JPG, JPEG, PNG, GIF, WebP, and AVIF
+- Archive, extracted-content, Markdown, and per-asset limits follow the effective PHP/WordPress upload limit unless an administrator enters a manual MB value
+- ZIP entry count defaults to 500 and can be configured up to 10,000
+- Only administrator-selected extensions from the plugin's safe image, video, audio, and PDF allowlist are extracted
 - ZIP path traversal and symbolic links are rejected
 - Unsupported archive entries are ignored
 - Imported HTML is sanitized by WordPress
@@ -234,13 +245,20 @@ If the detected OSS integration is enabled but does not have a complete bucket a
 
 ### Why did an image remain an external URL?
 
-Remote image URLs are preserved by default. An administrator can enable **Automatically import remote images** under **Import Settings**. Downloads use the WordPress safe HTTP and Media Library pipelines and retain the 20 MB image limit.
+Remote image URLs are preserved by default. An administrator can enable **Automatically import remote images** under **Import Settings**. Downloads use the WordPress safe HTTP and Media Library pipelines and follow the configured per-asset limit.
 
 ### Does the plugin modify existing posts during import?
 
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.7.0
+
+- Added configurable safe ZIP asset formats for images, video, audio, and PDF documents.
+- Added Media Library import and relative-path rewriting for linked assets and WordPress video/audio shortcodes.
+- Added configurable archive, extracted-content, Markdown, per-asset, and archive-entry limits that follow PHP/WordPress limits by default.
+- Packaged supported local linked media in the exported ZIP `media/` directory.
 
 ### 1.6.1
 

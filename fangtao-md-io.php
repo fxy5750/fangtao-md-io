@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Fangtao MD IO
- * Description: 导入或导出 Markdown 文章、ZIP 压缩包和本地图片。
- * Version: 1.6.1
+ * Description: 导入或导出 Markdown 文章、ZIP 压缩包和本地媒体素材。
+ * Version: 1.7.0
  * Author: Fangtao
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FTMZI_VERSION', '1.6.1' );
+define( 'FTMZI_VERSION', '1.7.0' );
 define( 'FTMZI_FILE', __FILE__ );
 define( 'FTMZI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FTMZI_URL', plugin_dir_url( __FILE__ ) );

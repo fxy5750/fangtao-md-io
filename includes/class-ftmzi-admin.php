@@ -410,6 +410,15 @@ final class FTMZI_Admin {
 			? FTMZI_Markdown::sanitize_parser( wp_unslash( $_POST['default_markdown_parser'] ) )
 			: FTMZI_Markdown::DEFAULT_PARSER;
 		$import_remote_images = isset( $_POST['import_remote_images'] ) ? 1 : 0;
+		$asset_extensions     = isset( $_POST['allowed_asset_extensions'] )
+			? FTMZI_Importer::sanitize_asset_extensions( wp_unslash( $_POST['allowed_asset_extensions'] ) )
+			: array();
+		$size_options         = array(
+			FTMZI_Importer::MAX_ARCHIVE_SIZE_OPTION   => 'max_archive_size_mb',
+			FTMZI_Importer::MAX_EXTRACTED_SIZE_OPTION => 'max_extracted_size_mb',
+			FTMZI_Importer::MAX_MARKDOWN_SIZE_OPTION  => 'max_markdown_size_mb',
+			FTMZI_Importer::MAX_ASSET_SIZE_OPTION     => 'max_asset_size_mb',
+		);
 
 		if ( ! in_array( $default_status, array( 'draft', 'publish' ), true ) ) {
 			$default_status = 'draft';
@@ -418,6 +427,15 @@ final class FTMZI_Admin {
 		update_option( self::DEFAULT_STATUS_OPTION, $default_status, false );
 		update_option( self::DEFAULT_PARSER_OPTION, $default_parser, false );
 		update_option( self::REMOTE_IMAGES_OPTION, $import_remote_images, false );
+		update_option( FTMZI_Importer::ALLOWED_ASSET_EXTENSIONS_OPTION, $asset_extensions, false );
+
+		foreach ( $size_options as $option_name => $field_name ) {
+			$value = isset( $_POST[ $field_name ] ) ? absint( $_POST[ $field_name ] ) : 0;
+			update_option( $option_name, min( $value, 102400 ), false );
+		}
+
+		$max_entries = isset( $_POST['max_archive_entries'] ) ? absint( $_POST['max_archive_entries'] ) : 0;
+		update_option( FTMZI_Importer::MAX_ARCHIVE_ENTRIES_OPTION, min( $max_entries, 10000 ), false );
 
 		wp_safe_redirect(
 			add_query_arg(
@@ -470,6 +488,16 @@ final class FTMZI_Admin {
 		$default_status       = get_option( self::DEFAULT_STATUS_OPTION, 'draft' );
 		$default_parser       = FTMZI_Markdown::sanitize_parser( get_option( self::DEFAULT_PARSER_OPTION, FTMZI_Markdown::DEFAULT_PARSER ) );
 		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
+		$asset_groups         = FTMZI_Importer::get_asset_groups();
+		$allowed_assets       = FTMZI_Importer::get_allowed_asset_extensions();
+		$import_limits        = FTMZI_Importer::get_limits();
+		$stored_limits        = array(
+			'max_archive_size_mb'   => absint( get_option( FTMZI_Importer::MAX_ARCHIVE_SIZE_OPTION, 0 ) ),
+			'max_extracted_size_mb' => absint( get_option( FTMZI_Importer::MAX_EXTRACTED_SIZE_OPTION, 0 ) ),
+			'max_markdown_size_mb'  => absint( get_option( FTMZI_Importer::MAX_MARKDOWN_SIZE_OPTION, 0 ) ),
+			'max_asset_size_mb'     => absint( get_option( FTMZI_Importer::MAX_ASSET_SIZE_OPTION, 0 ) ),
+			'max_archive_entries'   => absint( get_option( FTMZI_Importer::MAX_ARCHIVE_ENTRIES_OPTION, 0 ) ),
+		);
 		$markdown_parsers     = FTMZI_Markdown::get_parsers();
 		$missing_parsers      = FTMZI_Markdown::get_missing_parsers();
 
@@ -493,7 +521,7 @@ final class FTMZI_Admin {
 		<div class="wrap ftmzi-wrap">
 			<h1><?php esc_html_e( 'Markdown 导入', 'fangtao-md-io' ); ?></h1>
 			<p class="ftmzi-intro">
-				<?php esc_html_e( '直接上传单个 Markdown 文件，或上传包含 Markdown 和本地图片的 ZIP。每个 Markdown 文件会创建一篇内容。', 'fangtao-md-io' ); ?>
+				<?php esc_html_e( '直接上传单个 Markdown 文件，或上传包含 Markdown、图片、音视频和文档素材的 ZIP。每个 Markdown 文件会创建一篇内容。', 'fangtao-md-io' ); ?>
 			</p>
 
 			<?php $this->render_result( $result ); ?>
@@ -610,14 +638,21 @@ final class FTMZI_Admin {
 
 				<div class="ftmzi-guide">
 					<h2><?php esc_html_e( '导入说明', 'fangtao-md-io' ); ?></h2>
-					<p><?php esc_html_e( '纯 Markdown 文件可直接上传；如正文引用本地图片，请将 Markdown 与图片按相对路径一起打包为 ZIP。', 'fangtao-md-io' ); ?></p>
+					<p><?php esc_html_e( '纯 Markdown 文件可直接上传；如正文引用本地素材，请将 Markdown 与素材按相对路径一起打包为 ZIP。只有正文实际引用的素材会进入媒体库。', 'fangtao-md-io' ); ?></p>
 					<pre><code>articles/
   living-room.md
   images/
-    living-room.jpg</code></pre>
+    living-room.jpg
+  media/
+    tour.mp4</code></pre>
 					<p>
 						<?php esc_html_e( 'Markdown 中使用相对路径：', 'fangtao-md-io' ); ?>
 						<code>![客厅](images/living-room.jpg)</code>
+					</p>
+					<p>
+						<?php esc_html_e( '视频可使用 WordPress 短代码，其他素材可使用普通 Markdown 链接：', 'fangtao-md-io' ); ?>
+						<code>[video src="media/tour.mp4"]</code>
+						<code>[下载资料](media/catalog.pdf)</code>
 					</p>
 					<p>
 						<?php esc_html_e( '可选 Front Matter 字段：title、slug、permalink、excerpt、date、status、categories、tags、featured_image 和 featured_image_id。未指定封面时，正文首张已导入图片会设为特色图片。', 'fangtao-md-io' ); ?>
@@ -666,6 +701,73 @@ final class FTMZI_Admin {
 								<?php esc_html_e( '自动导入远程图片', 'fangtao-md-io' ); ?>
 							</label>
 							<p class="description"><?php esc_html_e( '开启后，正文和特色图片中的 HTTP(S) 图片会下载到媒体库；默认关闭。', 'fangtao-md-io' ); ?></p>
+						</div>
+
+						<fieldset class="ftmzi-field">
+							<legend><?php esc_html_e( 'ZIP 素材格式', 'fangtao-md-io' ); ?></legend>
+							<p class="description"><?php esc_html_e( '只解压并导入勾选的安全媒体格式。未勾选的文件会被忽略，PHP 等可执行格式始终不允许。', 'fangtao-md-io' ); ?></p>
+							<div class="ftmzi-extension-groups">
+								<?php
+								$asset_group_labels = array(
+									'image'    => __( '图片', 'fangtao-md-io' ),
+									'video'    => __( '视频', 'fangtao-md-io' ),
+									'audio'    => __( '音频', 'fangtao-md-io' ),
+									'document' => __( '文档', 'fangtao-md-io' ),
+								);
+								?>
+								<?php foreach ( $asset_groups as $group_name => $extensions ) : ?>
+									<div class="ftmzi-extension-group">
+										<strong><?php echo esc_html( $asset_group_labels[ $group_name ] ); ?></strong>
+										<div class="ftmzi-extension-options">
+											<?php foreach ( $extensions as $extension ) : ?>
+												<label>
+													<input name="allowed_asset_extensions[]" type="checkbox" value="<?php echo esc_attr( $extension ); ?>"<?php checked( in_array( $extension, $allowed_assets, true ) ); ?>>
+													.<?php echo esc_html( $extension ); ?>
+												</label>
+											<?php endforeach; ?>
+										</div>
+									</div>
+								<?php endforeach; ?>
+							</div>
+						</fieldset>
+
+						<div class="ftmzi-field">
+							<h3><?php esc_html_e( '导入大小限制', 'fangtao-md-io' ); ?></h3>
+							<p class="description">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %s: effective PHP upload limit. */
+										__( '留空或填写 0 时跟随 PHP/WordPress 上传限制（当前 %s）。手动值仍受服务器自身上传限制约束。', 'fangtao-md-io' ),
+										size_format( $import_limits['php_upload_size'] )
+									)
+								);
+								?>
+							</p>
+						</div>
+
+						<div class="ftmzi-limit-grid">
+							<div class="ftmzi-field">
+								<label for="ftmzi-max-archive-size"><?php esc_html_e( 'ZIP 文件上限（MB）', 'fangtao-md-io' ); ?></label>
+								<input id="ftmzi-max-archive-size" name="max_archive_size_mb" type="number" min="0" max="102400" value="<?php echo esc_attr( $stored_limits['max_archive_size_mb'] ); ?>" placeholder="<?php echo esc_attr( floor( $import_limits['php_upload_size'] / MB_IN_BYTES ) ); ?>">
+							</div>
+							<div class="ftmzi-field">
+								<label for="ftmzi-max-extracted-size"><?php esc_html_e( '解压总量上限（MB）', 'fangtao-md-io' ); ?></label>
+								<input id="ftmzi-max-extracted-size" name="max_extracted_size_mb" type="number" min="0" max="102400" value="<?php echo esc_attr( $stored_limits['max_extracted_size_mb'] ); ?>" placeholder="<?php echo esc_attr( floor( $import_limits['php_upload_size'] / MB_IN_BYTES ) ); ?>">
+							</div>
+							<div class="ftmzi-field">
+								<label for="ftmzi-max-markdown-size"><?php esc_html_e( '单个 Markdown 上限（MB）', 'fangtao-md-io' ); ?></label>
+								<input id="ftmzi-max-markdown-size" name="max_markdown_size_mb" type="number" min="0" max="102400" value="<?php echo esc_attr( $stored_limits['max_markdown_size_mb'] ); ?>" placeholder="<?php echo esc_attr( floor( $import_limits['php_upload_size'] / MB_IN_BYTES ) ); ?>">
+							</div>
+							<div class="ftmzi-field">
+								<label for="ftmzi-max-asset-size"><?php esc_html_e( '单个素材上限（MB）', 'fangtao-md-io' ); ?></label>
+								<input id="ftmzi-max-asset-size" name="max_asset_size_mb" type="number" min="0" max="102400" value="<?php echo esc_attr( $stored_limits['max_asset_size_mb'] ); ?>" placeholder="<?php echo esc_attr( floor( $import_limits['php_upload_size'] / MB_IN_BYTES ) ); ?>">
+							</div>
+							<div class="ftmzi-field">
+								<label for="ftmzi-max-archive-entries"><?php esc_html_e( 'ZIP 文件数量上限', 'fangtao-md-io' ); ?></label>
+								<input id="ftmzi-max-archive-entries" name="max_archive_entries" type="number" min="0" max="10000" value="<?php echo esc_attr( $stored_limits['max_archive_entries'] ); ?>" placeholder="<?php echo esc_attr( FTMZI_Importer::DEFAULT_ARCHIVE_ENTRIES ); ?>">
+								<p class="description"><?php esc_html_e( '留空或 0 时默认为 500 个。', 'fangtao-md-io' ); ?></p>
+							</div>
 						</div>
 
 						<?php submit_button( __( '保存设置', 'fangtao-md-io' ), 'secondary', 'submit', false ); ?>

@@ -4,26 +4,27 @@
 
 [English](README.md) | 简体中文
 
-Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容的插件。它可以导入单个 Markdown 文档，也可以导入包含多个 Markdown 文件和本地图片的 ZIP 压缩包；同时支持将单篇或多篇 WordPress 内容导出为便于迁移和备份的 Markdown ZIP。
+Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容的插件。它可以导入单个 Markdown 文档，也可以导入包含多个 Markdown 文件和本地媒体素材的 ZIP 压缩包；同时支持将单篇或多篇 WordPress 内容导出为便于迁移和备份的 Markdown ZIP。
 
 ## 功能特性
 
 - 支持以下 Markdown 文件扩展名（不区分大小写）：.md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt。
 - 导入包含多份 Markdown 文档的 ZIP 压缩包。
-- 将 Markdown 相对路径引用的本地图片导入 WordPress 媒体库。
-- 自动将正文中的本地图片引用替换为 WordPress 附件地址。
+- 手动选择 ZIP 中允许导入的安全图片、视频、音频和 PDF 扩展名。
+- 将正文引用的本地素材导入 WordPress 媒体库，并自动替换为附件地址。
 - 未指定特色图片时，可将首张导入的本地图片设为特色图片。
 - 导入时选择目标文章类型、文章状态，并可为普通文章选择分类。
 - 设置导入表单默认使用草稿或立即发布。
 - 在五种 Markdown 解析器中选择，覆盖传统、GitHub 和 Extra 三种语法风格。
 - 保存默认解析器，同时允许每次导入临时切换。
 - 可选将远程 HTTP(S) 图片下载到 WordPress 媒体库。
+- 默认跟随 PHP 上传限制，也可分别配置 ZIP、解压总量、Markdown、单个素材和文件数量上限。
 - 从 Front Matter 导入时间、状态、永久链接、分类、标签和媒体库特色图片 ID。
 - 从内容列表的行操作中导出单篇内容。
 - 通过 WordPress 批量操作导出多篇内容。
 - 按内容类型、分类和标签筛选全部匹配内容，并使用任一受支持的 Markdown 文本扩展名导出。
 - 将 WordPress HTML 和区块内容转换为 GitHub Flavored Markdown。
-- 将本地媒体库图片写入 `images/` 目录，并在 Markdown 中使用相对路径。
+- 将本地媒体库图片写入 `images/`，将本地音视频和 PDF 写入 `media/`，并使用相对路径。
 - 在导出的 Markdown 中包含已支持的 Front Matter 元数据。
 - OSS 配置完整时保持原有云端流程；检测到 OSS 配置不完整时回退到本地媒体库，避免上传时出现严重错误。
 
@@ -37,7 +38,7 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 - 建议启用原生 PHP mbstring 以获得更好性能；未启用时插件会使用内置兼容库
 - WordPress 上传目录必须可写
 
-上传文件的最大体积由 PHP 和 Web 服务器配置统一控制。
+导入限制默认读取 PHP 和 WordPress 的有效上传上限。管理员可以为插件设置更低或更高的限制，但 PHP 与 Web 服务器仍可能在请求进入 WordPress 前拦截超大文件。
 
 ## 安装方法
 
@@ -67,7 +68,7 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 
 每个 Markdown 文件会创建一篇新的 WordPress 内容。导入页面支持文章、页面，以及当前用户有权编辑的公开自定义文章类型。
 
-管理员可在页面底部的 **导入设置** 中保存表单默认使用的文章状态和 Markdown 解析器，并选择是否导入远程图片；执行单次导入时仍可临时修改状态和解析器。远程图片导入默认关闭。
+管理员可在页面底部的 **导入设置** 中保存默认文章状态和解析器、选择 ZIP 素材格式、设置导入大小限制，并决定是否导入远程图片。大小填写 `0` 或留空时跟随当前 PHP/WordPress 上传限制；远程图片导入默认关闭。
 
 ### Markdown 解析器
 
@@ -87,13 +88,15 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 
 ### 导入 ZIP
 
-将 Markdown 和本地图片按相对目录一起打包：
+将 Markdown 和本地素材按相对目录一起打包：
 
 ```text
 articles/
   living-room.md
   images/
     living-room.jpg
+  media/
+    room-tour.mp4
 ```
 
 在 Markdown 中使用相对于文档的图片路径：
@@ -103,6 +106,16 @@ articles/
 ```
 
 导入时，支持的本地图片会进入 WordPress 媒体库，生成内容中的图片引用也会同步更新。
+
+下载类素材使用普通 Markdown 链接，需要播放的视频或音频使用 WordPress 短代码：
+
+```markdown
+[下载目录](media/catalog.pdf)
+[video src="media/room-tour.mp4"]
+[audio src="media/interview.mp3"]
+```
+
+只有正文实际引用的素材才会进入媒体库。即使开放格式配置，可执行文件也始终不会被接受。
 
 ## Front Matter
 
@@ -197,11 +210,9 @@ article-two-456/
 
 导入器包含以下安全限制：
 
-- 每个 ZIP 最多 500 个条目
-- 解压后文件总量最大 200 MB
-- 单个 Markdown 文件最大 2 MB
-- 单张图片最大 20 MB
-- 支持 JPG、JPEG、PNG、GIF、WebP 和 AVIF
+- ZIP、解压总量、Markdown 和单个素材默认跟随 PHP/WordPress 有效上传限制，也可由管理员填写 MB 值
+- ZIP 文件数量默认最多 500 个，可手动配置到 10,000 个
+- 只解压管理员从安全图片、视频、音频和 PDF 白名单中勾选的扩展名
 - 拒绝 ZIP 目录穿越和符号链接
 - 忽略不支持的压缩包文件
 - 导入后的 HTML 会经过 WordPress 清理
@@ -234,13 +245,20 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 
 ### 为什么图片仍然是外部地址？
 
-远程图片默认保留原地址。管理员可在 **导入设置** 中开启 **自动导入远程图片**；下载会经过 WordPress 安全 HTTP 与媒体库流程，并继续执行单张图片 20 MB 限制。
+远程图片默认保留原地址。管理员可在 **导入设置** 中开启 **自动导入远程图片**；下载会经过 WordPress 安全 HTTP 与媒体库流程，并遵循已配置的单个素材大小限制。
 
 ### 导入时会覆盖已有文章吗？
 
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.7.0
+
+- 增加可配置的安全 ZIP 素材格式，覆盖图片、视频、音频和 PDF 文档。
+- 支持导入普通链接及 WordPress 视频/音频短代码引用的本地素材，并替换为媒体库地址。
+- 增加 ZIP、解压总量、Markdown、单个素材和文件数量限制，默认跟随 PHP/WordPress 上传限制。
+- 导出时将受支持的本地链接素材写入 ZIP 的 `media/` 目录。
 
 ### 1.6.1
 
