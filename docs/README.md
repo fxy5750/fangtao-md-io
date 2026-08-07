@@ -1,4 +1,4 @@
-![fangtao-markdown-zip-importer_banner_2172x724](./fangtao-md-io_banner_2172x724.jpg)
+![Fangtao MD IO banner](../fangtao-md-io_banner_2172x724.jpg)
 
 # Fangtao MD IO
 
@@ -39,6 +39,10 @@ Fangtao MD IO is a WordPress plugin for moving content between Markdown files an
 - A writable WordPress uploads directory
 
 Import limits follow the effective PHP and WordPress upload limit by default. Administrators can set lower or higher plugin limits, but PHP and the web server can still reject a request before WordPress receives it.
+
+## Languages
+
+Fangtao MD IO follows the active WordPress site or user language automatically. Chinese is the default source language, and an `en_US` translation is bundled with the plugin. Translators can use `languages/fangtao-md-io.pot` to create additional locale files without changing plugin code.
 
 ## Installation
 
@@ -252,6 +256,13 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.8.0
+
+- Added WordPress locale-aware English translations and a translation template.
+- Fixed Markdown menu icon centering in the WordPress admin sidebar.
+- Validate imported image metadata before completion to avoid unfinished Media Library items.
+- Moved GitHub documentation to `docs/` and excluded `.gitattributes` from archive exports.
 
 ### 1.7.0
 

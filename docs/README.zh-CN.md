@@ -1,4 +1,4 @@
-![fangtao-markdown-zip-importer_banner_2172x724](./fangtao-md-io_banner_2172x724.jpg)
+![Fangtao MD IO banner](../fangtao-md-io_banner_2172x724.jpg)
 
 # Fangtao MD IO
 
@@ -39,6 +39,10 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 - WordPress 上传目录必须可写
 
 导入限制默认读取 PHP 和 WordPress 的有效上传上限。管理员可以为插件设置更低或更高的限制，但 PHP 与 Web 服务器仍可能在请求进入 WordPress 前拦截超大文件。
+
+## 语言适配
+
+Fangtao MD IO 会自动跟随 WordPress 当前站点语言或当前用户的后台语言。中文是默认源语言，插件内置 `en_US` 英文翻译包；其他语言可基于 `languages/fangtao-md-io.pot` 创建翻译文件，无需修改插件代码。
 
 ## 安装方法
 
@@ -252,6 +256,13 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.8.0
+
+- 新增识别 WordPress 站点和用户语言的英文翻译包，并提供翻译模板。
+- 修复后台 Markdown 菜单图标与标题未居中的问题。
+- 导入完成前校验图片附件元数据，避免媒体库留下持续上传中的项目。
+- 将 GitHub 文档移动到 `docs/`，并在打包时排除 `.gitattributes`。
 
 ### 1.7.0
 

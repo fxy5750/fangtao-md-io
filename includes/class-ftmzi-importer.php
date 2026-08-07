@@ -1043,8 +1043,14 @@ final class FTMZI_Importer {
 		);
 		$restore_oss_filter = $this->suspend_unconfigured_oss_filter();
 
+		$attachment_ready = true;
+
 		try {
 			$attachment_id = media_handle_sideload( $file_array, $post_id, $alt );
+
+			if ( ! is_wp_error( $attachment_id ) ) {
+				$attachment_ready = $this->ensure_attachment_ready( $attachment_id );
+			}
 		} catch ( Throwable $exception ) {
 			@unlink( $temp_file );
 
@@ -1066,6 +1072,11 @@ final class FTMZI_Importer {
 		if ( is_wp_error( $attachment_id ) ) {
 			@unlink( $temp_file );
 			return $attachment_id;
+		}
+
+		if ( is_wp_error( $attachment_ready ) ) {
+			wp_delete_attachment( $attachment_id, true );
+			return $attachment_ready;
 		}
 
 		if ( $alt && wp_attachment_is_image( $attachment_id ) ) {
@@ -1190,8 +1201,14 @@ final class FTMZI_Importer {
 		);
 		$restore_oss_filter = $this->suspend_unconfigured_oss_filter();
 
+		$attachment_ready = true;
+
 		try {
 			$attachment_id = media_handle_sideload( $file_array, $post_id, $alt );
+
+			if ( ! is_wp_error( $attachment_id ) ) {
+				$attachment_ready = $this->ensure_attachment_ready( $attachment_id );
+			}
 		} catch ( Throwable $exception ) {
 			@unlink( $temp_file );
 			return new WP_Error( 'ftmzi_remote_image_import', $exception->getMessage() );
@@ -1204,6 +1221,11 @@ final class FTMZI_Importer {
 		if ( is_wp_error( $attachment_id ) ) {
 			@unlink( $temp_file );
 			return $attachment_id;
+		}
+
+		if ( is_wp_error( $attachment_ready ) ) {
+			wp_delete_attachment( $attachment_id, true );
+			return $attachment_ready;
 		}
 
 		if ( $alt ) {
@@ -1222,6 +1244,44 @@ final class FTMZI_Importer {
 		);
 
 		return $this->media_cache[ $cache_key ];
+	}
+
+	/**
+	 * Confirm an imported image has finished WordPress metadata generation.
+	 *
+	 * Some storage filters can return an attachment before its image metadata is
+	 * present. The Media Library then keeps showing an unfinished upload. Images
+	 * imported here must have local metadata before the importer accepts them.
+	 *
+	 * @param int $attachment_id Attachment ID created by this import.
+	 * @return true|WP_Error
+	 */
+	private function ensure_attachment_ready( $attachment_id ) {
+		if ( ! wp_attachment_is_image( $attachment_id ) ) {
+			return true;
+		}
+
+		$metadata = wp_get_attachment_metadata( $attachment_id );
+
+		if ( is_array( $metadata ) && ! empty( $metadata['file'] ) ) {
+			return true;
+		}
+
+		$file = get_attached_file( $attachment_id );
+
+		if ( ! $file || ! is_readable( $file ) ) {
+			return new WP_Error( 'ftmzi_attachment_file', __( '图片已入库，但无法读取本地文件。', 'fangtao-md-io' ) );
+		}
+
+		$metadata = wp_generate_attachment_metadata( $attachment_id, $file );
+
+		if ( ! is_array( $metadata ) || empty( $metadata['file'] ) ) {
+			return new WP_Error( 'ftmzi_attachment_metadata', __( '图片处理未完成，未保存到媒体库。', 'fangtao-md-io' ) );
+		}
+
+		wp_update_attachment_metadata( $attachment_id, $metadata );
+
+		return true;
 	}
 
 	/**

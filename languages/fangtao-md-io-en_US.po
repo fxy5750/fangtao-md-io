@@ -1,0 +1,371 @@
+msgid ""
+msgstr "Project-Id-Version: Fangtao MD IO 1.8.0\\nLanguage: en_US\\nContent-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\n"
+
+msgid "%1$s：%2$s"
+msgstr "%1$s: %2$s"
+
+msgid "Extra 风格"
+msgstr "Extra style"
+
+msgid "Front Matter 中的 date 无法识别，已使用当前时间。"
+msgstr "The Front Matter date could not be recognized. The current time was used."
+
+msgid "GitHub 风格"
+msgstr "GitHub style"
+
+msgid "HTTP 状态码 %d"
+msgstr "HTTP status code %d"
+
+msgid "Markdown"
+msgstr "Markdown"
+
+msgid "Markdown 中使用相对路径："
+msgstr "Use relative paths in Markdown:"
+
+msgid "Markdown 导入"
+msgstr "Markdown Import"
+
+msgid "Markdown 导出"
+msgstr "Markdown Export"
+
+msgid "Markdown 或 ZIP 文件"
+msgstr "Markdown or ZIP file"
+
+msgid "Markdown 文件不能超过 %s。"
+msgstr "Markdown files cannot exceed %s."
+
+msgid "Markdown 解析器"
+msgstr "Markdown parser"
+
+msgid "Markdown 解析组件未安装：%s。请重新安装本插件。"
+msgstr "Markdown parser component is missing: %s. Please reinstall this plugin."
+
+msgid "Markdown 转换失败：%s"
+msgstr "Markdown conversion failed: %s"
+
+msgid "WordPress 无法解压 ZIP：%s"
+msgstr "WordPress could not extract the ZIP: %s"
+
+msgid "ZIP 中没有找到支持的 Markdown 文本文件。"
+msgstr "No supported Markdown text file was found in the ZIP."
+
+msgid "ZIP 内文件数量不能超过 %d 个。"
+msgstr "The ZIP cannot contain more than %d files."
+
+msgid "ZIP 包含不安全的文件路径，导入已停止。"
+msgstr "The ZIP contains an unsafe file path. Import stopped."
+
+msgid "ZIP 包含符号链接，导入已停止。"
+msgstr "The ZIP contains a symbolic link. Import stopped."
+
+msgid "ZIP 压缩包写入失败。"
+msgstr "Could not write the ZIP archive."
+
+msgid "ZIP 文件上限（MB）"
+msgstr "ZIP file limit (MB)"
+
+msgid "ZIP 文件不能超过 %s。"
+msgstr "ZIP files cannot exceed %s."
+
+msgid "ZIP 文件数量上限"
+msgstr "ZIP file count limit"
+
+msgid "ZIP 目录结构"
+msgstr "ZIP structure"
+
+msgid "ZIP 素材格式"
+msgstr "ZIP asset formats"
+
+msgid "ZIP 解压后的文件总量不能超过 %s。"
+msgstr "The total extracted ZIP content cannot exceed %s."
+
+msgid "。单次导入仍可临时选择其他解析器。"
+msgstr ". You can still choose another parser for an individual import."
+
+msgid "。可在传统、GitHub 和 Extra 三种风格之间选择。"
+msgstr ". Choose between Traditional, GitHub, and Extra styles."
+
+msgid "上传并导入"
+msgstr "Upload and Import"
+
+msgid "不指定分类"
+msgstr "No category"
+
+msgid "仅支持 Markdown 文本文件和 .zip 文件。"
+msgstr "Only Markdown text files and .zip files are supported."
+
+msgid "从内容列表中单独或批量导出 Markdown ZIP。媒体库图片会写入 images 目录，并在 Markdown 中使用相对路径。"
+msgstr "Export Markdown ZIP files individually or in bulk from content lists. Media Library images are written to the images directory and referenced with relative paths."
+
+msgid "以下 Markdown 解析组件缺失，对应选项暂不可用：%s。请重新安装本插件。"
+msgstr "The following Markdown parser components are missing, so their options are unavailable: %s. Please reinstall this plugin."
+
+msgid "传统风格"
+msgstr "Traditional style"
+
+msgid "保存设置"
+msgstr "Save Settings"
+
+msgid "全部分类"
+msgstr "All Categories"
+
+msgid "全部标签"
+msgstr "All Tags"
+
+msgid "内容类型"
+msgstr "Content Type"
+
+msgid "单个 Markdown 上限（MB）"
+msgstr "Single Markdown limit (MB)"
+
+msgid "单个素材上限（MB）"
+msgstr "Single asset limit (MB)"
+
+msgid "单篇导出："
+msgstr "Single export:"
+
+msgid "只解压并导入勾选的安全媒体格式。未勾选的文件会被忽略，PHP 等可执行格式始终不允许。"
+msgstr "Only selected safe media formats are extracted and imported. Unselected files are ignored, and executable formats such as PHP are never allowed."
+
+msgid "可选 Front Matter 字段：title、slug、permalink、excerpt、date、status、categories、tags、featured_image 和 featured_image_id。未指定封面时，正文首张已导入图片会设为特色图片。"
+msgstr "Optional Front Matter fields: title, slug, permalink, excerpt, date, status, categories, tags, featured_image, and featured_image_id. If no featured image is specified, the first imported image in the content becomes the featured image."
+
+msgid "图片"
+msgstr "Images"
+
+msgid "图片已入库，但无法读取本地文件。"
+msgstr "The image was added to the Media Library, but its local file could not be read."
+
+msgid "图片处理未完成，未保存到媒体库。"
+msgstr "Image processing did not complete, so the image was not saved to the Media Library."
+
+msgid "导入到"
+msgstr "Import to"
+
+msgid "导入到分类"
+msgstr "Import category"
+
+msgid "导入大小限制"
+msgstr "Import size limits"
+
+msgid "导入完成：成功 %1$d 篇，失败 %2$d 篇。"
+msgstr "Import complete: %1$d succeeded, %2$d failed."
+
+msgid "导入设置"
+msgstr "Import Settings"
+
+msgid "导入设置已保存。"
+msgstr "Import settings saved."
+
+msgid "导入说明"
+msgstr "Import Guide"
+
+msgid "导出 Markdown"
+msgstr "Export Markdown"
+
+msgid "导出 Markdown ZIP"
+msgstr "Export Markdown ZIP"
+
+msgid "导出筛选结果"
+msgstr "Export Filtered Results"
+
+msgid "嵌入内容"
+msgstr "Embedded content"
+
+msgid "已发布 %d 篇"
+msgstr "%d published"
+
+msgid "开启后，正文和特色图片中的 HTTP(S) 图片会下载到媒体库；默认关闭。"
+msgstr "When enabled, HTTP(S) images in content and featured images are downloaded to the Media Library. Disabled by default."
+
+msgid "当前 Markdown 风格："
+msgstr "Current Markdown style:"
+
+msgid "您没有修改插件设置的权限。"
+msgstr "You do not have permission to change plugin settings."
+
+msgid "您没有导入文章的权限。"
+msgstr "You do not have permission to import content."
+
+msgid "您没有导出所选内容的权限。"
+msgstr "You do not have permission to export the selected content."
+
+msgid "您没有导出文章的权限。"
+msgstr "You do not have permission to export content."
+
+msgid "所选内容类型不可导出。"
+msgstr "The selected content type cannot be exported."
+
+msgid "打开对应内容列表。单篇内容使用标题下方的“导出 Markdown”；多篇内容先勾选，再从“批量操作”中选择“导出 Markdown ZIP”。"
+msgstr "Open the relevant content list. For one item, use Export Markdown below its title. For multiple items, select them and choose Export Markdown ZIP from Bulk actions."
+
+msgid "批量导出时，每篇内容会放入独立目录，目录内仍保持相同结构。"
+msgstr "For bulk exports, each item is placed in its own directory with the same internal structure."
+
+msgid "批量筛选导出"
+msgstr "Bulk filtered export"
+
+msgid "支持 .md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt 和 .zip 文件，不区分扩展名大小写。"
+msgstr "Supports .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .text, .txt, and .zip files, case-insensitively."
+
+msgid "文件上传失败，错误代码：%d。"
+msgstr "File upload failed with error code: %d."
+
+msgid "文件扩展名"
+msgstr "File extension"
+
+msgid "文件过大，无法导入：%s"
+msgstr "File is too large to import: %s"
+
+msgid "文档"
+msgstr "Documents"
+
+msgid "文章 HTML 内容无法解析。"
+msgstr "The post HTML content could not be parsed."
+
+msgid "文章 HTML 内容缺少根节点。"
+msgstr "The post HTML content is missing a root element."
+
+msgid "文章分类"
+msgstr "Post category"
+
+msgid "文章标签"
+msgstr "Post tags"
+
+msgid "文章状态"
+msgstr "Post status"
+
+msgid "无权导入到所选内容类型。"
+msgstr "You do not have permission to import into the selected content type."
+
+msgid "无法写入文章：%s"
+msgstr "Could not write the post: %s"
+
+msgid "无法准备素材：%s"
+msgstr "Could not prepare the asset: %s"
+
+msgid "无法创建 ZIP 压缩包。"
+msgstr "Could not create the ZIP archive."
+
+msgid "无法创建 ZIP 子目录。"
+msgstr "Could not create a ZIP subdirectory."
+
+msgid "无法创建临时导出文件，请检查 PHP 临时目录权限。"
+msgstr "Could not create a temporary export file. Check PHP temporary directory permissions."
+
+msgid "无法创建临时解压目录，请检查 PHP 临时目录权限。"
+msgstr "Could not create a temporary extraction directory. Check PHP temporary directory permissions."
+
+msgid "无法创建远程图片临时文件。"
+msgstr "Could not create a temporary file for the remote image."
+
+msgid "无法打开 ZIP 文件，文件可能已损坏或不是有效压缩包。"
+msgstr "Could not open the ZIP file. It may be damaged or invalid."
+
+msgid "无法解压文件：%s"
+msgstr "Could not extract file: %s"
+
+msgid "无法读取 Markdown 文件。"
+msgstr "Could not read the Markdown file."
+
+msgid "服务器未启用 PHP DOM 扩展，无法转换文章内容。"
+msgstr "The PHP DOM extension is not enabled, so post content cannot be converted."
+
+msgid "服务器未启用 PHP ZIP 或 zlib 扩展，无法创建压缩包。"
+msgstr "Neither PHP ZIP nor zlib is enabled, so an archive cannot be created."
+
+msgid "服务器未启用 PHP ZIP 扩展，ZIP 导入将使用 WordPress 内置解压机制。"
+msgstr "The PHP ZIP extension is unavailable. ZIP import will use WordPress built-in extraction."
+
+msgid "服务器未启用 PHP ZIP 扩展，ZIP 导出将使用 WordPress 内置 PclZip。"
+msgstr "The PHP ZIP extension is unavailable. ZIP export will use WordPress built-in PclZip."
+
+msgid "未在导入文件中找到素材：%s"
+msgstr "Asset was not found in the imported files: %s"
+
+msgid "查看图片导入警告"
+msgstr "View image import warnings"
+
+msgid "没有可导出的内容。"
+msgstr "There is no content to export."
+
+msgid "特色图片为远程地址，但远程图片导入尚未开启。"
+msgstr "The featured image is remote, but remote image importing is not enabled."
+
+msgid "用于设置导入表单首次打开时默认选中的文章状态，单次导入仍可临时修改。"
+msgstr "Sets the initially selected post status on the import form. It can still be changed for an individual import."
+
+msgid "留空或 0 时默认为 500 个。"
+msgstr "Leave blank or enter 0 to use the default of 500."
+
+msgid "留空或填写 0 时跟随 PHP/WordPress 上传限制（当前 %s）。手动值仍受服务器自身上传限制约束。"
+msgstr "Leave blank or enter 0 to follow the PHP/WordPress upload limit (currently %s). Manual values remain constrained by server upload limits."
+
+msgid "直接上传单个 Markdown 文件，或上传包含 Markdown、图片、音视频和文档素材的 ZIP。每个 Markdown 文件会创建一篇内容。"
+msgstr "Upload a single Markdown file, or a ZIP containing Markdown, images, audio, video, and document assets. Each Markdown file creates one content item."
+
+msgid "立即发布"
+msgstr "Publish immediately"
+
+msgid "素材导入失败（%1$s）：%2$s"
+msgstr "Asset import failed (%1$s): %2$s"
+
+msgid "素材已入库，但无法获取媒体 URL。"
+msgstr "The asset was added to the Media Library, but its URL could not be retrieved."
+
+msgid "纯 Markdown 文件可直接上传；如正文引用本地素材，请将 Markdown 与素材按相对路径一起打包为 ZIP。只有正文实际引用的素材会进入媒体库。"
+msgstr "A standalone Markdown file can be uploaded directly. If content references local assets, package the Markdown file and assets in a ZIP with relative paths. Only assets referenced in content are added to the Media Library."
+
+msgid "自动导入远程图片"
+msgstr "Import remote images automatically"
+
+msgid "草稿"
+msgstr "Draft"
+
+msgid "视频"
+msgstr "Video"
+
+msgid "视频可使用 WordPress 短代码，其他素材可使用普通 Markdown 链接："
+msgstr "Use WordPress shortcodes for video. Use normal Markdown links for other assets:"
+
+msgid "解压总量上限（MB）"
+msgstr "Extracted content limit (MB)"
+
+msgid "设置"
+msgstr "Settings"
+
+msgid "请选择一个 Markdown 或 ZIP 文件。"
+msgstr "Please choose a Markdown or ZIP file."
+
+msgid "远程图片下载失败（%1$s）：%2$s"
+msgstr "Remote image download failed (%1$s): %2$s"
+
+msgid "远程图片地址不安全或无效。"
+msgstr "The remote image address is unsafe or invalid."
+
+msgid "远程图片已入库，但无法获取媒体 URL。"
+msgstr "The remote image was added to the Media Library, but its URL could not be retrieved."
+
+msgid "远程图片格式未在导入设置中启用。"
+msgstr "The remote image format is not enabled in Import Settings."
+
+msgid "远程图片超过 %s 限制。"
+msgstr "The remote image exceeds the %s limit."
+
+msgid "远程文件不是受支持的图片格式。"
+msgstr "The remote file is not a supported image format."
+
+msgid "选择要导出的内容"
+msgstr "Select content to export"
+
+msgid "音频"
+msgstr "Audio"
+
+msgid "默认 Markdown 解析器"
+msgstr "Default Markdown parser"
+
+msgid "默认文章状态"
+msgstr "Default post status"
+
+msgid "默认风格："
+msgstr "Default style:"

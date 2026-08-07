@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -55,8 +55,8 @@ media/
 
 Bulk exports place every item in a separate directory with the same internal structure.
 
-For complete English documentation, see `README.md`.
-For Simplified Chinese documentation, see `README.zh-CN.md`.
+For complete English documentation, see `docs/README.md`.
+For Simplified Chinese documentation, see `docs/README.zh-CN.md`.
 
 Parsedown, Parsedown Extra, and cebe/markdown are bundled under the MIT License.
 
@@ -114,6 +114,13 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.8.0 =
+
+* Added WordPress locale-aware English translations and a translation template.
+* Fixed Markdown menu icon centering in the WordPress admin sidebar.
+* Validate imported image metadata before completion to avoid unfinished Media Library items.
+* Moved GitHub documentation to the `docs/` directory and excluded `.gitattributes` from archive exports.
 
 = 1.7.0 =
 
