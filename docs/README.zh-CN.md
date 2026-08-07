@@ -2,7 +2,7 @@
 
 # Fangtao MD IO
 
-[English](README.md) | 简体中文
+[English](../README.md) | 简体中文
 
 Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容的插件。它可以导入单个 Markdown 文档，也可以导入包含多个 Markdown 文件和本地媒体素材的 ZIP 压缩包；同时支持将单篇或多篇 WordPress 内容导出为便于迁移和备份的 Markdown ZIP。
 
@@ -13,13 +13,13 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 - 手动选择 ZIP 中允许导入的安全图片、视频、音频和 PDF 扩展名。
 - 将正文引用的本地素材导入 WordPress 媒体库，并自动替换为附件地址。
 - 未指定特色图片时，可将首张导入的本地图片设为特色图片。
-- 导入时选择目标文章类型、文章状态，并可为普通文章选择分类。
+- 导入时选择目标文章类型、文章状态、精确到秒的文章日期、私密可见性或访问密码，并可为普通文章选择分类。
 - 设置导入表单默认使用草稿或立即发布。
 - 在五种 Markdown 解析器中选择，覆盖传统、GitHub 和 Extra 三种语法风格。
 - 保存默认解析器，同时允许每次导入临时切换。
 - 可选将远程 HTTP(S) 图片下载到 WordPress 媒体库。
 - 默认跟随 PHP 上传限制，也可分别配置 ZIP、解压总量、Markdown、单个素材和文件数量上限。
-- 从 Front Matter 导入时间、状态、永久链接、分类、标签和媒体库特色图片 ID。
+- 从 Front Matter 导入时间、状态、访问密码、永久链接、分类、标签和媒体库特色图片 ID。
 - 从内容列表的行操作中导出单篇内容。
 - 通过 WordPress 批量操作导出多篇内容。
 - 按内容类型、分类和标签筛选全部匹配内容，并使用任一受支持的 Markdown 文本扩展名导出。
@@ -66,11 +66,13 @@ Fangtao MD IO 会自动跟随 WordPress 当前站点语言或当前用户的后�
 1. 选择支持的 Markdown 文本文件或 `.zip` 压缩包。
 2. 选择导入到的内容类型。
 3. 导入普通文章时，可选择要归入的分类。
-4. 选择 **草稿** 或 **立即发布**。
+4. 选择 **草稿** 或 **立即发布**，并可选设置精确日期时间、私密可见性或访问密码。
 5. 选择 Markdown 解析器。
 6. 点击 **上传并导入**。
 
 每个 Markdown 文件会创建一篇新的 WordPress 内容。导入页面支持文章、页面，以及当前用户有权编辑的公开自定义文章类型。
+
+私密可见性与访问密码是 WordPress 的两种独立访问方式，导入表单中一次只能选择其中一种。
 
 管理员可在页面底部的 **导入设置** 中保存默认文章状态和解析器、选择 ZIP 素材格式、设置导入大小限制，并决定是否导入远程图片。大小填写 `0` 或留空时跟随当前 PHP/WordPress 上传限制；远程图片导入默认关闭。
 
@@ -132,6 +134,7 @@ slug: calm-living-room
 excerpt: 一份打造安静舒适空间的实用指南。
 date: 2026-07-10T12:00:00+08:00
 status: draft
+password: optional-password
 categories: 家具资讯, 选购指南
 tags: 橡木, 客厅
 featured_image: images/cover.jpg
@@ -147,6 +150,7 @@ featured_image: images/cover.jpg
 | `featured_image` | 支持 | 支持 | 可使用压缩包路径、媒体库 URL、启用后的远程 URL 或附件 ID；兼容 `cover` 和 `image`。 |
 | `featured_image_id` | 支持 | 不导出 | 使用现有媒体库图片附件。 |
 | `date` | 支持 | 支持 | 按 WordPress 站点时区保存 PHP 可识别的日期。 |
+| `password` | 支持 | 不导出 | 为导入内容设置访问密码。 |
 | `categories` | 支持 | 支持 | 普通文章的分类名称或 ID，逗号分隔；兼容 `category`。 |
 | `tags` | 支持 | 支持 | 普通文章的标签名称，逗号分隔；兼容 `tag`。 |
 | `post_type` | 在界面选择 | 支持 | 导入目标由导入表单控制。 |
@@ -256,6 +260,20 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.9.1
+
+- 修复导入图片附件标题为空时，媒体库被错误显示为“上传中”的问题。
+
+### 1.9.0
+
+- 增加可精确到秒的导入日期与时间设置。
+- 增加私密可见性与访问密码设置。
+- 增加 `password` Front Matter 导入支持。
+
+### 1.8.1
+
+- 修复 Markdown 后台菜单图标的垂直对齐，并更新样式资源版本。
 
 ### 1.8.0
 

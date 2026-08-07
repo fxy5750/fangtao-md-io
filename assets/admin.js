@@ -19,6 +19,34 @@
 		updateImportCategory();
 	}
 
+	const postPasswordToggle = document.getElementById( 'ftmzi-use-post-password' );
+	const postPassword = document.getElementById( 'ftmzi-post-password' );
+	const postPrivate = document.getElementById( 'ftmzi-post-private' );
+
+	if ( postPasswordToggle && postPassword ) {
+		const updatePostPassword = function () {
+			const passwordAllowed = ! postPrivate || ! postPrivate.checked;
+
+			postPasswordToggle.disabled = ! passwordAllowed;
+			if ( ! passwordAllowed ) {
+				postPasswordToggle.checked = false;
+			}
+
+			postPassword.disabled = ! passwordAllowed || ! postPasswordToggle.checked;
+			postPassword.required = passwordAllowed && postPasswordToggle.checked;
+
+			if ( postPassword.disabled ) {
+				postPassword.value = '';
+			}
+		};
+
+		postPasswordToggle.addEventListener( 'change', updatePostPassword );
+		if ( postPrivate ) {
+			postPrivate.addEventListener( 'change', updatePostPassword );
+		}
+		updatePostPassword();
+	}
+
 	document.querySelectorAll( '[data-ftmzi-parser-select]' ).forEach( function ( select ) {
 		const flavorTarget = document.getElementById( select.dataset.flavorTarget );
 

@@ -354,6 +354,12 @@ final class FTMZI_Admin {
 		$post_type   = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : 'post';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_key( wp_unslash( $_POST['post_status'] ) ) : 'draft';
 		$category_id = isset( $_POST['category_id'] ) ? absint( $_POST['category_id'] ) : 0;
+		$post_date   = $this->sanitize_import_date( isset( $_POST['post_date'] ) ? wp_unslash( $_POST['post_date'] ) : '' );
+		$use_password = isset( $_POST['use_post_password'] );
+		$post_password = $use_password && isset( $_POST['post_password'] )
+			? substr( sanitize_text_field( wp_unslash( $_POST['post_password'] ) ), 0, 255 )
+			: '';
+		$is_private = isset( $_POST['post_private'] );
 		$markdown_parser = isset( $_POST['markdown_parser'] )
 			? FTMZI_Markdown::sanitize_parser( wp_unslash( $_POST['markdown_parser'] ) )
 			: FTMZI_Markdown::sanitize_parser( get_option( self::DEFAULT_PARSER_OPTION, FTMZI_Markdown::DEFAULT_PARSER ) );
@@ -372,12 +378,32 @@ final class FTMZI_Admin {
 			);
 		}
 
+		if ( is_wp_error( $post_date ) ) {
+			$this->redirect_with_result( $post_date );
+		}
+
+		if ( $use_password && '' === $post_password ) {
+			$this->redirect_with_result( new WP_Error( 'ftmzi_post_password', __( '请输入访问密码。', 'fangtao-md-io' ) ) );
+		}
+
+		if ( $is_private && $use_password ) {
+			$this->redirect_with_result( new WP_Error( 'ftmzi_private_password', __( '私密文章不能同时设置访问密码。', 'fangtao-md-io' ) ) );
+		}
+
 		if ( 'publish' === $post_status && ! current_user_can( $post_object->cap->publish_posts ) ) {
 			$post_status = 'draft';
 		}
 
 		if ( ! in_array( $post_status, array( 'draft', 'publish' ), true ) ) {
 			$post_status = 'draft';
+		}
+
+		if ( $is_private ) {
+			if ( ! current_user_can( $post_object->cap->publish_posts ) ) {
+				$this->redirect_with_result( new WP_Error( 'ftmzi_private_post', __( '您没有将文章设为私密的权限。', 'fangtao-md-io' ) ) );
+			}
+
+			$post_status = 'private';
 		}
 
 		if ( 'post' !== $post_type || ( $category_id && ! term_exists( $category_id, 'category' ) ) ) {
@@ -388,9 +414,31 @@ final class FTMZI_Admin {
 		$upload               = isset( $_FILES['markdown_zip'] ) ? $_FILES['markdown_zip'] : array();
 		$importer             = new FTMZI_Importer();
 		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
-		$result               = $importer->import( $upload, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser );
+		$result               = $importer->import( $upload, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password );
 
 		$this->redirect_with_result( $result );
+	}
+
+	/**
+	 * Normalize an optional import date submitted by the admin form.
+	 *
+	 * @param mixed $value Submitted local date and time.
+	 * @return string|WP_Error
+	 */
+	private function sanitize_import_date( $value ) {
+		$value = sanitize_text_field( (string) $value );
+
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$date = date_create_from_format( '!Y-m-d\\TH:i:s', $value, wp_timezone() );
+
+		if ( false === $date || $date->format( 'Y-m-d\\TH:i:s' ) !== $value ) {
+			return new WP_Error( 'ftmzi_post_date', __( '文章日期格式无效。', 'fangtao-md-io' ) );
+		}
+
+		return $date->format( 'Y-m-d H:i:s' );
 	}
 
 	/**
@@ -631,6 +679,33 @@ final class FTMZI_Admin {
 							<strong id="ftmzi-parser-flavor"><?php echo esc_html( $markdown_parsers[ $default_parser ]['flavor'] ); ?></strong>
 							<?php esc_html_e( '。可在传统、GitHub 和 Extra 三种风格之间选择。', 'fangtao-md-io' ); ?>
 						</p>
+					</div>
+
+					<div class="ftmzi-fields-row ftmzi-fields-row--import-options">
+						<div class="ftmzi-field">
+							<label for="ftmzi-post-date"><?php esc_html_e( '文章日期', 'fangtao-md-io' ); ?></label>
+							<input id="ftmzi-post-date" name="post_date" type="datetime-local" step="1">
+							<p class="description"><?php esc_html_e( '留空则使用当前时间；可精确到秒。', 'fangtao-md-io' ); ?></p>
+						</div>
+
+						<div class="ftmzi-field">
+							<label><?php esc_html_e( '可见性', 'fangtao-md-io' ); ?></label>
+							<label class="ftmzi-option-label" for="ftmzi-post-private">
+								<input id="ftmzi-post-private" name="post_private" type="checkbox" value="1">
+								<?php esc_html_e( '设为私密', 'fangtao-md-io' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( '仅管理员和有权限的用户可查看。', 'fangtao-md-io' ); ?></p>
+						</div>
+
+						<div class="ftmzi-field">
+							<label><?php esc_html_e( '访问密码', 'fangtao-md-io' ); ?></label>
+							<label class="ftmzi-option-label" for="ftmzi-use-post-password">
+								<input id="ftmzi-use-post-password" name="use_post_password" type="checkbox" value="1">
+								<?php esc_html_e( '设置访问密码', 'fangtao-md-io' ); ?>
+							</label>
+							<input id="ftmzi-post-password" name="post_password" type="password" maxlength="255" autocomplete="new-password" disabled>
+							<p class="description"><?php esc_html_e( '私密文章不能使用访问密码；密码未设置时文章保持无密码访问。', 'fangtao-md-io' ); ?></p>
+						</div>
 					</div>
 
 					<?php submit_button( __( '上传并导入', 'fangtao-md-io' ), 'primary', 'submit', false ); ?>

@@ -154,9 +154,11 @@ final class FTMZI_Importer {
 	 * @param int    $category_id Destination category ID for posts.
 	 * @param bool   $import_remote_images Whether remote HTTP images should be imported.
 	 * @param string $markdown_parser Markdown parser key.
+	 * @param string $post_date Optional site-local post date.
+	 * @param string $post_password Optional post password.
 	 * @return array|WP_Error
 	 */
-	public function import( $upload, $post_type, $post_status, $category_id = 0, $import_remote_images = false, $markdown_parser = FTMZI_Markdown::DEFAULT_PARSER ) {
+	public function import( $upload, $post_type, $post_status, $category_id = 0, $import_remote_images = false, $markdown_parser = FTMZI_Markdown::DEFAULT_PARSER, $post_date = '', $post_password = '' ) {
 		$this->media_cache = array();
 		$extension         = $this->validate_upload( $upload );
 		$markdown_parser   = FTMZI_Markdown::sanitize_parser( $markdown_parser );
@@ -174,7 +176,7 @@ final class FTMZI_Importer {
 				'markdown' => array( $markdown_path ),
 			);
 
-			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser );
+			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password );
 		}
 
 		$temp_dir = trailingslashit( get_temp_dir() ) . 'ftmzi-' . wp_generate_uuid4();
@@ -193,7 +195,7 @@ final class FTMZI_Importer {
 				return $archive;
 			}
 
-			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser );
+			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password );
 		} finally {
 			$this->remove_directory( $temp_dir );
 		}
@@ -208,9 +210,11 @@ final class FTMZI_Importer {
 	 * @param int    $category_id Destination category ID for posts.
 	 * @param bool   $import_remote_images Whether remote HTTP images should be imported.
 	 * @param string $markdown_parser Markdown parser key.
+	 * @param string $post_date Optional site-local post date.
+	 * @param string $post_password Optional post password.
 	 * @return array
 	 */
-	private function import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser ) {
+	private function import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password ) {
 		$results = array(
 			'created'  => array(),
 			'failed'   => array(),
@@ -225,7 +229,9 @@ final class FTMZI_Importer {
 				$post_status,
 				$category_id,
 				$import_remote_images,
-				$markdown_parser
+				$markdown_parser,
+				$post_date,
+				$post_password
 			);
 
 			if ( is_wp_error( $document ) ) {
@@ -689,9 +695,11 @@ final class FTMZI_Importer {
 	 * @param int    $category_id   Destination category ID for posts.
 	 * @param bool   $import_remote_images Whether remote HTTP images should be imported.
 	 * @param string $markdown_parser Markdown parser key.
+	 * @param string $post_date Optional site-local post date.
+	 * @param string $post_password Optional post password.
 	 * @return array|WP_Error
 	 */
-	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser ) {
+	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password ) {
 		if ( empty( $files[ $markdown_path ] ) || ! is_readable( $files[ $markdown_path ] ) ) {
 			return new WP_Error(
 				'ftmzi_read_markdown',
@@ -752,6 +760,15 @@ final class FTMZI_Importer {
 			} else {
 				$warnings[] = __( 'Front Matter 中的 date 无法识别，已使用当前时间。', 'fangtao-md-io' );
 			}
+		} elseif ( $post_date ) {
+			$post_data['post_date']     = $post_date;
+			$post_data['post_date_gmt'] = get_gmt_from_date( $post_date );
+		}
+
+		if ( ! empty( $meta['password'] ) ) {
+			$post_data['post_password'] = substr( sanitize_text_field( $meta['password'] ), 0, 255 );
+		} elseif ( $post_password ) {
+			$post_data['post_password'] = substr( sanitize_text_field( $post_password ), 0, 255 );
 		}
 
 		$post_id = wp_insert_post( wp_slash( $post_data ), true );
@@ -1046,7 +1063,7 @@ final class FTMZI_Importer {
 		$attachment_ready = true;
 
 		try {
-			$attachment_id = media_handle_sideload( $file_array, $post_id, $alt );
+			$attachment_id = media_handle_sideload( $file_array, $post_id );
 
 			if ( ! is_wp_error( $attachment_id ) ) {
 				$attachment_ready = $this->ensure_attachment_ready( $attachment_id );
@@ -1204,7 +1221,7 @@ final class FTMZI_Importer {
 		$attachment_ready = true;
 
 		try {
-			$attachment_id = media_handle_sideload( $file_array, $post_id, $alt );
+			$attachment_id = media_handle_sideload( $file_array, $post_id );
 
 			if ( ! is_wp_error( $attachment_id ) ) {
 				$attachment_ready = $this->ensure_attachment_ready( $attachment_id );

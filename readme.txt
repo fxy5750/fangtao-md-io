@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.8.0
+Stable tag: 1.9.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -21,13 +21,13 @@ Fangtao MD IO provides a focused workflow for moving content between Markdown fi
 * Select safe image, video, audio, and PDF extensions allowed inside ZIP imports.
 * Add referenced local assets to the WordPress Media Library.
 * Configure ZIP, extracted-content, Markdown, asset, and entry-count limits, following PHP limits by default.
-* Select the destination post type and post status.
+* Select the destination post type, post status, precise post date and time, private visibility, or an optional password.
 * Assign imported standard posts to an optional category.
 * Configure the default post status used by the import form.
 * Choose from five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
 * Configure the default parser while retaining a per-import override.
 * Optionally import remote HTTP(S) images through WordPress safe HTTP handling.
-* Import Front Matter titles, slugs, permalinks, excerpts, dates, statuses, categories, tags, and featured images.
+* Import Front Matter titles, slugs, permalinks, excerpts, dates, statuses, passwords, categories, tags, and featured images.
 
 = Export =
 
@@ -99,7 +99,9 @@ Only referenced assets are imported. Administrators can choose the allowed safe 
 
 = Which Front Matter fields are supported during import? =
 
-The importer supports single-line `title`, `slug`, `permalink`, `excerpt`, `date`, `status`, `categories`, `tags`, `featured_image`, and `featured_image_id` values. `description`, `category`, `tag`, `cover`, and `image` are accepted aliases. Complex or nested YAML values are not supported.
+The importer supports single-line `title`, `slug`, `permalink`, `excerpt`, `date`, `status`, `password`, `categories`, `tags`, `featured_image`, and `featured_image_id` values. `description`, `category`, `tag`, `cover`, and `image` are accepted aliases. Complex or nested YAML values are not supported.
+
+Private posts and password-protected posts are separate WordPress visibility modes and cannot be combined.
 
 = Are remote images downloaded? =
 
@@ -114,6 +116,20 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.9.1 =
+
+* Fixed imported Media Library images being left with an empty attachment title and appearing as unfinished uploads.
+
+= 1.9.0 =
+
+* Added optional import date and time controls with second-level precision.
+* Added private visibility and password-protected post controls.
+* Added Front Matter password support.
+
+= 1.8.1 =
+
+* Fixed the Markdown admin menu icon alignment and refreshed its stylesheet version.
 
 = 1.8.0 =
 

@@ -1,5 +1,5 @@
 msgid ""
-msgstr "Project-Id-Version: Fangtao MD IO 1.8.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
+msgstr "Project-Id-Version: Fangtao MD IO 1.9.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
 
 msgid "%1$s：%2$s"
 msgstr ""
@@ -368,4 +368,43 @@ msgid "默认文章状态"
 msgstr ""
 
 msgid "默认风格："
+msgstr ""
+
+msgid "请输入访问密码。"
+msgstr ""
+
+msgid "您没有将文章设为私密的权限。"
+msgstr ""
+
+msgid "文章日期"
+msgstr ""
+
+msgid "文章日期格式无效。"
+msgstr ""
+
+msgid "留空则使用当前时间；可精确到秒。"
+msgstr ""
+
+msgid "可见性"
+msgstr ""
+
+msgid "设为私密"
+msgstr ""
+
+msgid "仅管理员和有权限的用户可查看。"
+msgstr ""
+
+msgid "访问密码"
+msgstr ""
+
+msgid "设置访问密码"
+msgstr ""
+
+msgid "密码未设置时文章保持无密码访问。"
+msgstr ""
+
+msgid "私密文章不能同时设置访问密码。"
+msgstr ""
+
+msgid "私密文章不能使用访问密码；密码未设置时文章保持无密码访问。"
 msgstr ""

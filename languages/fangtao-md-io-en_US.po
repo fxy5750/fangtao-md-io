@@ -1,5 +1,5 @@
 msgid ""
-msgstr "Project-Id-Version: Fangtao MD IO 1.8.0\\nLanguage: en_US\\nContent-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\n"
+msgstr "Project-Id-Version: Fangtao MD IO 1.9.0\\nLanguage: en_US\\nContent-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\n"
 
 msgid "%1$s：%2$s"
 msgstr "%1$s: %2$s"
@@ -369,3 +369,42 @@ msgstr "Default post status"
 
 msgid "默认风格："
 msgstr "Default style:"
+
+msgid "请输入访问密码。"
+msgstr "Please enter an access password."
+
+msgid "您没有将文章设为私密的权限。"
+msgstr "You do not have permission to make posts private."
+
+msgid "文章日期"
+msgstr "Post date"
+
+msgid "文章日期格式无效。"
+msgstr "The post date format is invalid."
+
+msgid "留空则使用当前时间；可精确到秒。"
+msgstr "Leave empty to use the current time. Seconds are supported."
+
+msgid "可见性"
+msgstr "Visibility"
+
+msgid "设为私密"
+msgstr "Make private"
+
+msgid "仅管理员和有权限的用户可查看。"
+msgstr "Only administrators and authorized users can view it."
+
+msgid "访问密码"
+msgstr "Access password"
+
+msgid "设置访问密码"
+msgstr "Set an access password"
+
+msgid "密码未设置时文章保持无密码访问。"
+msgstr "When no password is set, the post remains accessible without a password."
+
+msgid "私密文章不能同时设置访问密码。"
+msgstr "Private posts cannot use an access password at the same time."
+
+msgid "私密文章不能使用访问密码；密码未设置时文章保持无密码访问。"
+msgstr "Private posts cannot use an access password. When no password is set, the post remains accessible without a password."

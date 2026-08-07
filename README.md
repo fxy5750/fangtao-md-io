@@ -1,8 +1,7 @@
-![Fangtao MD IO banner](../fangtao-md-io_banner_2172x724.jpg)
+![Fangtao MD IO banner](fangtao-md-io_banner_2172x724.jpg)
 
 # Fangtao MD IO
-
-English | [简体中文](README.zh-CN.md)
+English | [Simplified Chinese](docs/README.zh-CN.md)
 
 Fangtao MD IO is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local media assets. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
 
@@ -13,13 +12,13 @@ Fangtao MD IO is a WordPress plugin for moving content between Markdown files an
 - Select which safe image, video, audio, and PDF extensions may be imported from ZIP packages.
 - Upload referenced local assets to the WordPress Media Library and replace their relative paths with attachment URLs.
 - Use the first imported local image as the featured image when no featured image is specified.
-- Choose the destination post type, post status, and a category for standard posts.
+- Choose the destination post type, post status, precise post date and time, private visibility or password protection, and a category for standard posts.
 - Configure the default post status used by the import form.
 - Choose one of five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
 - Configure the default parser while retaining a per-import override.
 - Optionally download remote HTTP(S) images into the WordPress Media Library.
 - Follow the effective PHP upload limit by default or configure separate ZIP, extracted-content, Markdown, asset, and entry-count limits.
-- Import Front Matter dates, statuses, permalinks, categories, tags, and Media Library featured image IDs.
+- Import Front Matter dates, statuses, passwords, permalinks, categories, tags, and Media Library featured image IDs.
 - Export a single post from its row action.
 - Export multiple posts from WordPress bulk actions.
 - Export all matching content by post type, category, and tag, using any supported Markdown text filename extension.
@@ -66,11 +65,13 @@ Open **Markdown > Markdown Import**.
 1. Select a supported Markdown text file or `.zip` archive.
 2. Choose the destination content type.
 3. When importing standard posts, optionally choose a destination category.
-4. Choose **Draft** or **Publish immediately**.
+4. Choose **Draft** or **Publish immediately**, then optionally set an exact date and time, private visibility, or an access password.
 5. Choose a Markdown parser.
 6. Click **Upload and Import**.
 
 Each Markdown file creates one WordPress content item. The import screen supports standard posts, pages, and public custom post types that the current user can edit.
+
+Private visibility and password protection are separate WordPress modes, so the import form allows only one of them at a time.
 
 Administrators can set the import form's initial post status and Markdown parser, enable remote image imports, choose allowed ZIP asset formats, and configure import limits under **Import Settings**. A blank or zero size limit follows the current PHP/WordPress upload limit. Remote image importing is disabled by default.
 
@@ -132,6 +133,7 @@ slug: calm-living-room
 excerpt: A practical guide to creating a calm and comfortable space.
 date: 2026-07-10T12:00:00+08:00
 status: draft
+password: optional-password
 categories: Furniture News, Buying Guides
 tags: oak, living room
 featured_image: images/cover.jpg
@@ -147,6 +149,7 @@ featured_image: images/cover.jpg
 | `featured_image` | Yes | Yes | Accepts a bundled path, Media Library URL, remote URL when enabled, or attachment ID. `cover` and `image` are aliases. |
 | `featured_image_id` | Yes | No | Uses an existing Media Library image attachment. |
 | `date` | Yes | Yes | Accepts a date understood by PHP and stores it in the WordPress site timezone. |
+| `password` | Yes | No | Password-protects the imported post. |
 | `categories` | Yes | Yes | Comma-separated names or IDs for standard posts. `category` is an alias. |
 | `tags` | Yes | Yes | Comma-separated names for standard posts. `tag` is an alias. |
 | `post_type` | Selected in the UI | Yes | Import destination is controlled by the import form. |
@@ -256,6 +259,20 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.9.1
+
+- Fixed imported Media Library images being left with an empty attachment title and appearing as unfinished uploads.
+
+### 1.9.0
+
+- Added optional import date and time controls with second-level precision.
+- Added private visibility and password-protected post controls.
+- Added Front Matter password support.
+
+### 1.8.1
+
+- Fixed vertical alignment for the Markdown admin menu icon and refreshed its stylesheet version.
 
 ### 1.8.0
 
