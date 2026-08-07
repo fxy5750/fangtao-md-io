@@ -174,6 +174,7 @@ final class FTMZI_Importer {
 					$markdown_path => $upload['tmp_name'],
 				),
 				'markdown' => array( $markdown_path ),
+				'dates'    => array(),
 			);
 
 			return $this->import_documents( $archive, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password );
@@ -204,7 +205,7 @@ final class FTMZI_Importer {
 	/**
 	 * Import all Markdown documents from a prepared file map.
 	 *
-	 * @param array  $archive     Prepared file map and Markdown paths.
+	 * @param array  $archive     Prepared file map, Markdown paths, and optional ZIP dates.
 	 * @param string $post_type   Destination post type.
 	 * @param string $post_status Destination post status.
 	 * @param int    $category_id Destination category ID for posts.
@@ -222,6 +223,8 @@ final class FTMZI_Importer {
 		);
 
 		foreach ( $archive['markdown'] as $markdown_path ) {
+			$file_date = isset( $archive['dates'][ $markdown_path ] ) ? (int) $archive['dates'][ $markdown_path ] : 0;
+
 			$document = $this->import_document(
 				$markdown_path,
 				$archive['files'],
@@ -231,7 +234,8 @@ final class FTMZI_Importer {
 				$import_remote_images,
 				$markdown_parser,
 				$post_date,
-				$post_password
+				$post_password,
+				$file_date
 			);
 
 			if ( is_wp_error( $document ) ) {
@@ -352,6 +356,7 @@ final class FTMZI_Importer {
 
 		$files          = array();
 		$markdown_files = array();
+		$markdown_dates = array();
 		$total_size     = 0;
 		$actual_total   = 0;
 		$allowed_assets = self::get_allowed_asset_extensions();
@@ -491,6 +496,10 @@ final class FTMZI_Importer {
 
 			if ( in_array( $extension, $allowed_docs, true ) ) {
 				$markdown_files[] = $archive_path;
+
+				if ( ! empty( $stat['mtime'] ) ) {
+					$markdown_dates[ $archive_path ] = (int) $stat['mtime'];
+				}
 			}
 		}
 
@@ -507,6 +516,7 @@ final class FTMZI_Importer {
 		return array(
 			'files'    => $files,
 			'markdown' => array_values( $markdown_files ),
+			'dates'    => $markdown_dates,
 		);
 	}
 
@@ -542,6 +552,7 @@ final class FTMZI_Importer {
 		$expected_files = array();
 		$selected_files = array();
 		$markdown_files = array();
+		$markdown_dates = array();
 		$total_size     = 0;
 		$allowed_assets = self::get_allowed_asset_extensions();
 		$allowed_docs   = self::DOCUMENT_EXTENSIONS;
@@ -610,6 +621,10 @@ final class FTMZI_Importer {
 
 			if ( in_array( $extension, $allowed_docs, true ) ) {
 				$markdown_files[] = $archive_path;
+
+				if ( ! empty( $entry['mtime'] ) ) {
+					$markdown_dates[ $archive_path ] = (int) $entry['mtime'];
+				}
 			}
 		}
 
@@ -682,6 +697,7 @@ final class FTMZI_Importer {
 		return array(
 			'files'    => $expected_files,
 			'markdown' => array_values( $markdown_files ),
+			'dates'    => $markdown_dates,
 		);
 	}
 
@@ -697,9 +713,10 @@ final class FTMZI_Importer {
 	 * @param string $markdown_parser Markdown parser key.
 	 * @param string $post_date Optional site-local post date.
 	 * @param string $post_password Optional post password.
+	 * @param int    $file_date     Optional ZIP entry modification timestamp.
 	 * @return array|WP_Error
 	 */
-	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password ) {
+	private function import_document( $markdown_path, $files, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password, $file_date = 0 ) {
 		if ( empty( $files[ $markdown_path ] ) || ! is_readable( $files[ $markdown_path ] ) ) {
 			return new WP_Error(
 				'ftmzi_read_markdown',
@@ -750,7 +767,13 @@ final class FTMZI_Importer {
 			$post_data['post_name'] = sanitize_title( rawurldecode( basename( untrailingslashit( (string) $permalink_path ) ) ) );
 		}
 
-		if ( ! empty( $meta['date'] ) ) {
+		if ( $post_date ) {
+			$post_data['post_date']     = $post_date;
+			$post_data['post_date_gmt'] = get_gmt_from_date( $post_date );
+		} elseif ( $file_date > 0 ) {
+			$post_data['post_date']     = wp_date( 'Y-m-d H:i:s', $file_date );
+			$post_data['post_date_gmt'] = gmdate( 'Y-m-d H:i:s', $file_date );
+		} elseif ( ! empty( $meta['date'] ) ) {
 			$date = date_create( $meta['date'], wp_timezone() );
 
 			if ( false !== $date ) {
@@ -760,9 +783,6 @@ final class FTMZI_Importer {
 			} else {
 				$warnings[] = __( 'Front Matter 中的 date 无法识别，已使用当前时间。', 'fangtao-md-io' );
 			}
-		} elseif ( $post_date ) {
-			$post_data['post_date']     = $post_date;
-			$post_data['post_date_gmt'] = get_gmt_from_date( $post_date );
 		}
 
 		if ( ! empty( $meta['password'] ) ) {

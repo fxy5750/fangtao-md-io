@@ -337,6 +337,21 @@ msgstr ""
 msgid "请选择一个 Markdown 或 ZIP 文件。"
 msgstr ""
 
+msgid "请选择至少一个 Markdown 或 ZIP 文件。"
+msgstr ""
+
+msgid "可一次上传多个 Markdown 文件或 ZIP。每个 Markdown 文件会创建一篇内容；不含 Markdown 的 ZIP 会被跳过。"
+msgstr ""
+
+msgid "支持一次选择多个 .md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt 和 .zip 文件，不区分扩展名大小写。未包含 Markdown 的 ZIP 会自动跳过。"
+msgstr ""
+
+msgid "导入完成：成功 %1$d 篇，失败 %2$d 篇，跳过 %3$d 个文件。"
+msgstr ""
+
+msgid "查看已跳过的不含 Markdown 的 ZIP 文件"
+msgstr ""
+
 msgid "远程图片下载失败（%1$s）：%2$s"
 msgstr ""
 
@@ -376,13 +391,13 @@ msgstr ""
 msgid "您没有将文章设为私密的权限。"
 msgstr ""
 
-msgid "文章日期"
+msgid "文章发布日期（可选）"
 msgstr ""
 
 msgid "文章日期格式无效。"
 msgstr ""
 
-msgid "留空则使用当前时间；可精确到秒。"
+msgid "留空时，ZIP 内的每篇 Markdown 使用压缩包记录的最后修改时间；可手动精确到秒。"
 msgstr ""
 
 msgid "可见性"

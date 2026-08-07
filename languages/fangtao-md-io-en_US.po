@@ -337,6 +337,21 @@ msgstr "Settings"
 msgid "请选择一个 Markdown 或 ZIP 文件。"
 msgstr "Please choose a Markdown or ZIP file."
 
+msgid "请选择至少一个 Markdown 或 ZIP 文件。"
+msgstr "Please choose at least one Markdown or ZIP file."
+
+msgid "可一次上传多个 Markdown 文件或 ZIP。每个 Markdown 文件会创建一篇内容；不含 Markdown 的 ZIP 会被跳过。"
+msgstr "Upload multiple Markdown files or ZIP archives at once. Each Markdown file creates one content item; ZIP archives without Markdown are skipped."
+
+msgid "支持一次选择多个 .md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt 和 .zip 文件，不区分扩展名大小写。未包含 Markdown 的 ZIP 会自动跳过。"
+msgstr "Select multiple .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .text, .txt, and .zip files, case-insensitively. ZIP archives without Markdown are skipped automatically."
+
+msgid "导入完成：成功 %1$d 篇，失败 %2$d 篇，跳过 %3$d 个文件。"
+msgstr "Import complete: %1$d succeeded, %2$d failed, and %3$d files were skipped."
+
+msgid "查看已跳过的不含 Markdown 的 ZIP 文件"
+msgstr "View skipped ZIP archives without Markdown"
+
 msgid "远程图片下载失败（%1$s）：%2$s"
 msgstr "Remote image download failed (%1$s): %2$s"
 
@@ -376,14 +391,14 @@ msgstr "Please enter an access password."
 msgid "您没有将文章设为私密的权限。"
 msgstr "You do not have permission to make posts private."
 
-msgid "文章日期"
-msgstr "Post date"
+msgid "文章发布日期（可选）"
+msgstr "Optional publication date"
 
 msgid "文章日期格式无效。"
 msgstr "The post date format is invalid."
 
-msgid "留空则使用当前时间；可精确到秒。"
-msgstr "Leave empty to use the current time. Seconds are supported."
+msgid "留空时，ZIP 内的每篇 Markdown 使用压缩包记录的最后修改时间；可手动精确到秒。"
+msgstr "Leave blank to use each Markdown document's ZIP modification time; set an exact manual time when needed."
 
 msgid "可见性"
 msgstr "Visibility"

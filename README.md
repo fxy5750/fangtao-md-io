@@ -62,14 +62,20 @@ Fangtao MD IO follows the active WordPress site or user language automatically. 
 
 Open **Markdown > Markdown Import**.
 
-1. Select a supported Markdown text file or `.zip` archive.
+1. Select one or more supported Markdown text files or `.zip` archives.
 2. Choose the destination content type.
 3. When importing standard posts, optionally choose a destination category.
-4. Choose **Draft** or **Publish immediately**, then optionally set an exact date and time, private visibility, or an access password.
+4. Choose **Draft** or **Publish immediately**. Leave the date empty to use each Markdown file's ZIP modification time, or set an exact manual publication date and time. You can also choose private visibility or an access password.
 5. Choose a Markdown parser.
 6. Click **Upload and Import**.
 
 Each Markdown file creates one WordPress content item. The import screen supports standard posts, pages, and public custom post types that the current user can edit.
+
+ZIP archives that do not contain a supported Markdown document are skipped and do not import their bundled assets.
+
+Date priority is: manual publication date, ZIP Markdown modification time, Front Matter `date`, then the current WordPress time.
+
+When multiple ZIP files are imported without a manual publication date, every Markdown document uses its own ZIP modification time. Different archives and documents can therefore create posts with different publication dates.
 
 Private visibility and password protection are separate WordPress modes, so the import form allows only one of them at a time.
 
@@ -263,6 +269,7 @@ No. Each imported Markdown document creates a new content item.
 ### 1.9.1
 
 - Fixed imported Media Library images being left with an empty attachment title and appearing as unfinished uploads.
+- Use each Markdown document's ZIP modification time when no manual publication date is set.
 
 ### 1.9.0
 

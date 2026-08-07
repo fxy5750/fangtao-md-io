@@ -17,11 +17,14 @@ Fangtao MD IO provides a focused workflow for moving content between Markdown fi
 = Import =
 
 * Supported Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
-* Import ZIP archives containing multiple Markdown documents.
+* Select multiple Markdown files and ZIP archives in one import request.
+* ZIP archives without a supported Markdown document are skipped without importing their assets.
 * Select safe image, video, audio, and PDF extensions allowed inside ZIP imports.
 * Add referenced local assets to the WordPress Media Library.
 * Configure ZIP, extracted-content, Markdown, asset, and entry-count limits, following PHP limits by default.
-* Select the destination post type, post status, precise post date and time, private visibility, or an optional password.
+* Use each Markdown file's ZIP modification time by default, or set an exact manual publication date and time.
+* When importing multiple ZIP files without a manual publication date, preserve each Markdown document's own ZIP modification time.
+* Select the destination post type, post status, private visibility, or an optional password.
 * Assign imported standard posts to an optional category.
 * Configure the default post status used by the import form.
 * Choose from five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
@@ -120,6 +123,7 @@ No. Every Markdown document creates a new WordPress content item.
 = 1.9.1 =
 
 * Fixed imported Media Library images being left with an empty attachment title and appearing as unfinished uploads.
+* Use each Markdown file's ZIP modification time when no manual publication date is set.
 
 = 1.9.0 =
 

@@ -410,13 +410,84 @@ final class FTMZI_Admin {
 			$category_id = 0;
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File metadata is validated by the importer before use.
-		$upload               = isset( $_FILES['markdown_zip'] ) ? $_FILES['markdown_zip'] : array();
+		$uploads = $this->get_import_uploads();
+
+		if ( empty( $uploads ) ) {
+			$this->redirect_with_result( new WP_Error( 'ftmzi_missing_upload', __( '请选择至少一个 Markdown 或 ZIP 文件。', 'fangtao-md-io' ) ) );
+		}
+
 		$importer             = new FTMZI_Importer();
 		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
-		$result               = $importer->import( $upload, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password );
+		$result               = array(
+			'created'  => array(),
+			'failed'   => array(),
+			'warnings' => array(),
+			'skipped'  => array(),
+		);
+
+		foreach ( $uploads as $upload ) {
+			$file_name    = sanitize_file_name( wp_basename( (string) $upload['name'] ) );
+			$import_result = $importer->import( $upload, $post_type, $post_status, $category_id, $import_remote_images, $markdown_parser, $post_date, $post_password );
+
+			if ( is_wp_error( $import_result ) ) {
+				if ( 'ftmzi_no_markdown' === $import_result->get_error_code() ) {
+					$result['skipped'][] = $file_name;
+				} else {
+					$result['failed'][] = array(
+						'file'    => $file_name,
+						'message' => $import_result->get_error_message(),
+					);
+				}
+
+				continue;
+			}
+
+			foreach ( array( 'created', 'failed', 'warnings' ) as $key ) {
+				if ( ! empty( $import_result[ $key ] ) ) {
+					$result[ $key ] = array_merge( $result[ $key ], $import_result[ $key ] );
+				}
+			}
+		}
 
 		$this->redirect_with_result( $result );
+	}
+
+	/**
+	 * Normalize one or more files submitted by the import form.
+	 *
+	 * @return array<int, array>
+	 */
+	private function get_import_uploads() {
+		if ( ! isset( $_FILES['markdown_zip'] ) || ! is_array( $_FILES['markdown_zip'] ) ) {
+			return array();
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File metadata is validated by the importer before use.
+		$uploads = $_FILES['markdown_zip'];
+
+		if ( ! isset( $uploads['name'] ) || ! is_array( $uploads['name'] ) ) {
+			return array( $uploads );
+		}
+
+		$normalized = array();
+
+		foreach ( $uploads['name'] as $index => $name ) {
+			$error = isset( $uploads['error'][ $index ] ) ? (int) $uploads['error'][ $index ] : UPLOAD_ERR_NO_FILE;
+
+			if ( UPLOAD_ERR_NO_FILE === $error && '' === (string) $name ) {
+				continue;
+			}
+
+			$normalized[] = array(
+				'name'     => $name,
+				'type'     => isset( $uploads['type'][ $index ] ) ? $uploads['type'][ $index ] : '',
+				'tmp_name' => isset( $uploads['tmp_name'][ $index ] ) ? $uploads['tmp_name'][ $index ] : '',
+				'error'    => $error,
+				'size'     => isset( $uploads['size'][ $index ] ) ? $uploads['size'][ $index ] : 0,
+			);
+		}
+
+		return $normalized;
 	}
 
 	/**
@@ -569,7 +640,7 @@ final class FTMZI_Admin {
 		<div class="wrap ftmzi-wrap">
 			<h1><?php esc_html_e( 'Markdown 导入', 'fangtao-md-io' ); ?></h1>
 			<p class="ftmzi-intro">
-				<?php esc_html_e( '直接上传单个 Markdown 文件，或上传包含 Markdown、图片、音视频和文档素材的 ZIP。每个 Markdown 文件会创建一篇内容。', 'fangtao-md-io' ); ?>
+				<?php esc_html_e( '可一次上传多个 Markdown 文件或 ZIP。每个 Markdown 文件会创建一篇内容；不含 Markdown 的 ZIP 会被跳过。', 'fangtao-md-io' ); ?>
 			</p>
 
 			<?php $this->render_result( $result ); ?>
@@ -608,8 +679,8 @@ final class FTMZI_Admin {
 
 					<div class="ftmzi-field">
 						<label for="ftmzi-markdown-zip"><?php esc_html_e( 'Markdown 或 ZIP 文件', 'fangtao-md-io' ); ?></label>
-						<input id="ftmzi-markdown-zip" name="markdown_zip" type="file" accept=".zip,.md,.markdown,.mdown,.mkdn,.mkd,.mdwn,.mdtxt,.mdtext,.文本,.txt,application/zip,text/markdown,text/plain" required>
-						<p class="description"><?php esc_html_e( '支持 .md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt 和 .zip 文件，不区分扩展名大小写。', 'fangtao-md-io' ); ?></p>
+						<input id="ftmzi-markdown-zip" name="markdown_zip[]" type="file" accept=".zip,.md,.markdown,.mdown,.mkdn,.mkd,.mdwn,.mdtxt,.mdtext,.文本,.txt,application/zip,text/markdown,text/plain" multiple required>
+						<p class="description"><?php esc_html_e( '支持一次选择多个 .md、.markdown、.mdown、.mkdn、.mkd、.mdwn、.mdtxt、.mdtext、.文本、.txt 和 .zip 文件，不区分扩展名大小写。未包含 Markdown 的 ZIP 会自动跳过。', 'fangtao-md-io' ); ?></p>
 					</div>
 
 					<div class="ftmzi-fields-row ftmzi-fields-row--import">
@@ -683,9 +754,9 @@ final class FTMZI_Admin {
 
 					<div class="ftmzi-fields-row ftmzi-fields-row--import-options">
 						<div class="ftmzi-field">
-							<label for="ftmzi-post-date"><?php esc_html_e( '文章日期', 'fangtao-md-io' ); ?></label>
+							<label for="ftmzi-post-date"><?php esc_html_e( '文章发布日期（可选）', 'fangtao-md-io' ); ?></label>
 							<input id="ftmzi-post-date" name="post_date" type="datetime-local" step="1">
-							<p class="description"><?php esc_html_e( '留空则使用当前时间；可精确到秒。', 'fangtao-md-io' ); ?></p>
+							<p class="description"><?php esc_html_e( '留空时，ZIP 内的每篇 Markdown 使用压缩包记录的最后修改时间；可手动精确到秒。', 'fangtao-md-io' ); ?></p>
 						</div>
 
 						<div class="ftmzi-field">
@@ -1039,16 +1110,18 @@ images/
 
 		$created = isset( $result['created'] ) ? $result['created'] : array();
 		$failed  = isset( $result['failed'] ) ? $result['failed'] : array();
+		$skipped = isset( $result['skipped'] ) ? $result['skipped'] : array();
 		?>
-		<div class="notice <?php echo empty( $failed ) ? 'notice-success' : 'notice-warning'; ?> inline ftmzi-result">
+		<div class="notice <?php echo empty( $failed ) && empty( $skipped ) ? 'notice-success' : 'notice-warning'; ?> inline ftmzi-result">
 			<p>
 				<strong>
 					<?php
 					printf(
-						/* translators: 1: created count, 2: failed count. */
-						esc_html__( '导入完成：成功 %1$d 篇，失败 %2$d 篇。', 'fangtao-md-io' ),
+						/* translators: 1: created count, 2: failed count, 3: skipped file count. */
+						esc_html__( '导入完成：成功 %1$d 篇，失败 %2$d 篇，跳过 %3$d 个文件。', 'fangtao-md-io' ),
 						count( $created ),
-						count( $failed )
+						count( $failed ),
+						count( $skipped )
 					);
 					?>
 				</strong>
@@ -1073,6 +1146,17 @@ images/
 						<li><?php echo esc_html( $failure['file'] . '：' . $failure['message'] ); ?></li>
 					<?php endforeach; ?>
 				</ul>
+			<?php endif; ?>
+
+			<?php if ( $skipped ) : ?>
+				<details>
+					<summary><?php esc_html_e( '查看已跳过的不含 Markdown 的 ZIP 文件', 'fangtao-md-io' ); ?></summary>
+					<ul>
+						<?php foreach ( $skipped as $file ) : ?>
+							<li><?php echo esc_html( $file ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				</details>
 			<?php endif; ?>
 
 			<?php if ( ! empty( $result['warnings'] ) ) : ?>
