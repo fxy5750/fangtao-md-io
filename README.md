@@ -1,4 +1,4 @@
-![Fangtao MD IO banner](fangtao-md-io_banner_2172x724.jpg)
+![Fangtao MD IO banner](fangtao-md-io_banner_1544x500.jpg)
 
 # Fangtao MD IO
 English | [简体中文](docs/README.zh-CN.md)
