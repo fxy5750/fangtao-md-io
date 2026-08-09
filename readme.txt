@@ -3,7 +3,7 @@ Contributors: fangtao
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.9.10
+Stable tag: 1.9.15
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -120,6 +120,26 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.9.15 =
+
+* Centered the Current time and Clear action icons in the publication date picker.
+
+= 1.9.14 =
+
+* Fixed the publication date popover position and combined date and time in one precise control.
+
+= 1.9.13 =
+
+* Made the publication date popup open reliably above or below its input, with aligned action icons.
+
+= 1.9.12 =
+
+* Added a compact publication date field with a popup for typing or selecting date and time, plus Current time and Clear controls.
+
+= 1.9.11 =
+
+* Made the Markdown import and export pages use the available WordPress admin content width.
 
 = 1.9.10 =
 

@@ -14,7 +14,7 @@
 
 .ftmzi-wrap--import,
 .ftmzi-wrap--export {
-	max-width: 1200px;
+	max-width: none;
 }
 
 html[data-arco-theme="dark"] .ftmzi-wrap {
@@ -552,6 +552,8 @@ html[data-arco-theme="dark"] .ftmzi-wrap {
 
 .ftmzi-wrap input[type="text"],
 .ftmzi-wrap input[type="number"],
+.ftmzi-wrap input[type="date"],
+.ftmzi-wrap input[type="time"],
 .ftmzi-wrap input[type="datetime-local"],
 .ftmzi-wrap input[type="password"],
 .ftmzi-wrap select {
@@ -648,6 +650,109 @@ html[data-arco-theme="dark"] .ftmzi-wrap select:not([multiple]) {
 
 .ftmzi-fields-row--import-options {
 	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ftmzi-date-picker {
+	position: relative;
+}
+
+.ftmzi-date-picker__trigger {
+	position: relative;
+}
+
+.ftmzi-date-picker__trigger input {
+	padding-right: 44px;
+}
+
+
+.ftmzi-date-picker__toggle {
+	position: absolute;
+	top: 1px;
+	right: 1px;
+	display: grid;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	place-items: center;
+	border: 0;
+	border-left: 1px solid var(--ftmzi-line);
+	border-radius: 0 7px 7px 0;
+	background: transparent;
+	color: var(--ftmzi-muted);
+	cursor: pointer;
+	transition: background .18s ease, color .18s ease;
+}
+
+.ftmzi-date-picker__toggle:hover,
+.ftmzi-date-picker__toggle:focus-visible {
+	background: var(--ftmzi-blue-soft);
+	color: var(--ftmzi-blue);
+	outline: 0;
+}
+
+.ftmzi-date-picker__popover {
+	position: fixed;
+	z-index: 100000;
+	top: 0;
+	left: 0;
+	display: none;
+	width: min(350px, calc(100vw - 56px));
+	padding: 14px;
+	border: 1px solid var(--ftmzi-line);
+	border-radius: 9px;
+	background: var(--ftmzi-card);
+	box-shadow: 0 14px 32px rgba(29, 33, 41, .16);
+}
+.ftmzi-date-picker__popover.is-open {
+	display: block;
+}
+
+.ftmzi-date-picker__input {
+	display: grid;
+	gap: 6px;
+}
+
+.ftmzi-date-picker__input label {
+	color: var(--ftmzi-muted);
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.ftmzi-date-picker__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.ftmzi-date-picker__actions .button {
+	display: inline-flex;
+	min-height: 38px;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.ftmzi-date-picker__actions .button:not(.button-primary) {
+	display: inline-grid;
+	grid-template-columns: 16px auto;
+	place-content: center;
+}
+
+.ftmzi-date-picker__actions .dashicons {
+	display: inline-grid !important;
+	place-items: center;
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.ftmzi-date-picker__actions .dashicons::before {
+	line-height: 1;
+	transform: translateY(-.5px);
 }
 
 .ftmzi-fields-row--export {
@@ -881,6 +986,10 @@ html[data-arco-theme="dark"] .ftmzi-wrap select:not([multiple]) {
 
 	.ftmzi-export-types {
 		grid-template-columns: 1fr;
+	}
+
+	.ftmzi-date-picker__popover {
+		width: min(350px, calc(100vw - 40px));
 	}
 
 	.ftmzi-advanced-action {

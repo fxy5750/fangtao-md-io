@@ -1,7 +1,7 @@
 ![Fangtao MD IO banner](fangtao-md-io_banner_2172x724.jpg)
 
 # Fangtao MD IO
-English | [Simplified Chinese](docs/README.zh-CN.md)
+English | [简体中文](docs/README.zh-CN.md)
 
 Fangtao MD IO is a WordPress plugin for moving content between Markdown files and WordPress. It can import a standalone Markdown document or a ZIP archive containing multiple Markdown files and local media assets. It can also export individual or multiple WordPress posts as portable Markdown ZIP packages.
 
@@ -266,6 +266,26 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.9.15
+
+- Centered the Current time and Clear action icons in the publication date picker.
+
+### 1.9.14
+
+- Anchored the publication date popover to its input and combined date and time in one precise control.
+
+### 1.9.13
+
+- Made the publication date popup open reliably above or below its input, with aligned action icons.
+
+### 1.9.12
+
+- Added a compact publication date field with a popup for typing or selecting date and time, plus Current time and Clear controls.
+
+### 1.9.11
+
+- Made the Markdown import and export pages use the available WordPress admin content width.
 
 ### 1.9.10
 

@@ -1038,10 +1038,33 @@ final class FTMZI_Admin {
 					</div>
 
 					<div class="ftmzi-fields-row ftmzi-fields-row--import-options">
-						<div class="ftmzi-field">
+						<div class="ftmzi-field ftmzi-field--post-date" data-ftmzi-date-picker>
 							<label for="ftmzi-post-date"><?php esc_html_e( '文章发布日期（可选）', 'fangtao-md-io' ); ?></label>
-							<input id="ftmzi-post-date" name="post_date" type="datetime-local" step="1">
-							<p class="description"><?php esc_html_e( '留空时，ZIP 内的每篇 Markdown 使用压缩包记录的最后修改时间；可手动精确到秒。', 'fangtao-md-io' ); ?></p>
+							<input id="ftmzi-post-date-value" name="post_date" type="hidden">
+							<div class="ftmzi-date-picker__trigger">
+								<input id="ftmzi-post-date" type="text" inputmode="numeric" autocomplete="off" placeholder="YYYY-MM-DD HH:MM:SS" aria-describedby="ftmzi-post-date-help" aria-expanded="false" aria-controls="ftmzi-post-date-popover" data-ftmzi-invalid-message="<?php esc_attr_e( '请使用 YYYY-MM-DD HH:MM:SS 格式。', 'fangtao-md-io' ); ?>">
+								<button class="ftmzi-date-picker__toggle" type="button" data-ftmzi-date-toggle aria-label="<?php esc_attr_e( '选择发布日期', 'fangtao-md-io' ); ?>" title="<?php esc_attr_e( '选择发布日期', 'fangtao-md-io' ); ?>" aria-expanded="false" aria-controls="ftmzi-post-date-popover">
+									<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span>
+								</button>
+							</div>
+							<div id="ftmzi-post-date-popover" class="ftmzi-date-picker__popover" data-ftmzi-date-popover role="dialog" aria-label="<?php esc_attr_e( '选择发布日期', 'fangtao-md-io' ); ?>" aria-hidden="true">
+								<div class="ftmzi-date-picker__input">
+									<label for="ftmzi-post-datetime-picker"><?php esc_html_e( '选择发布日期', 'fangtao-md-io' ); ?></label>
+									<input id="ftmzi-post-datetime-picker" type="datetime-local" step="1">
+								</div>
+								<div class="ftmzi-date-picker__actions">
+									<button class="button" type="button" data-ftmzi-date-now>
+										<span class="dashicons dashicons-clock" aria-hidden="true"></span>
+										<?php esc_html_e( '当前时间', 'fangtao-md-io' ); ?>
+									</button>
+									<button class="button" type="button" data-ftmzi-date-clear>
+										<span class="dashicons dashicons-dismiss" aria-hidden="true"></span>
+										<?php esc_html_e( '清空', 'fangtao-md-io' ); ?>
+									</button>
+									<button class="button button-primary" type="button" data-ftmzi-date-close><?php esc_html_e( '完成', 'fangtao-md-io' ); ?></button>
+								</div>
+							</div>
+							<p id="ftmzi-post-date-help" class="description"><?php esc_html_e( '留空时，ZIP 内的每篇 Markdown 使用压缩包记录的最后修改时间；可手动精确到秒。', 'fangtao-md-io' ); ?></p>
 						</div>
 
 						<div class="ftmzi-field">

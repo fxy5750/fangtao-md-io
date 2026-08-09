@@ -22,6 +22,151 @@
 	const postPasswordToggle = document.getElementById( 'ftmzi-use-post-password' );
 	const postPassword = document.getElementById( 'ftmzi-post-password' );
 	const postPrivate = document.getElementById( 'ftmzi-post-private' );
+	const postDate = document.getElementById( 'ftmzi-post-date' );
+	const postDatePicker = document.getElementById( 'ftmzi-post-datetime-picker' );
+	const postDateValue = document.getElementById( 'ftmzi-post-date-value' );
+	const postDateToggle = document.querySelector( '[data-ftmzi-date-toggle]' );
+	const postDatePopover = document.querySelector( '[data-ftmzi-date-popover]' );
+	const postDateNow = document.querySelector( '[data-ftmzi-date-now]' );
+	const postDateClear = document.querySelector( '[data-ftmzi-date-clear]' );
+	const postDateClose = document.querySelector( '[data-ftmzi-date-close]' );
+
+	if ( postDate && postDatePicker && postDateValue ) {
+		const formatDatePart = function ( value ) {
+			return String( value ).padStart( 2, '0' );
+		};
+		const setPopoverOpen = function ( isOpen ) {
+			if ( ! postDatePopover ) {
+				return;
+			}
+
+			postDatePopover.classList.toggle( 'is-open', isOpen );
+			postDatePopover.setAttribute( 'aria-hidden', isOpen ? 'false' : 'true' );
+			postDate.setAttribute( 'aria-expanded', isOpen ? 'true' : 'false' );
+			if ( postDateToggle ) {
+				postDateToggle.setAttribute( 'aria-expanded', isOpen ? 'true' : 'false' );
+			}
+			if ( isOpen ) {
+				window.requestAnimationFrame( function () {
+					const viewportWidth = document.documentElement.clientWidth;
+					const triggerBounds = postDate.getBoundingClientRect();
+					const popoverHeight = postDatePopover.offsetHeight;
+					const popoverWidth = postDatePopover.offsetWidth;
+					const opensAbove = triggerBounds.bottom + popoverHeight + 8 > window.innerHeight && triggerBounds.top - popoverHeight - 8 >= 8;
+					const top = opensAbove ? triggerBounds.top - popoverHeight - 8 : triggerBounds.bottom + 8;
+					const left = Math.min( Math.max( 8, triggerBounds.left ), Math.max( 8, viewportWidth - popoverWidth - 8 ) );
+
+					postDatePopover.style.top = Math.max( 8, top ) + 'px';
+					postDatePopover.style.left = left + 'px';
+				} );
+			} else {
+				postDatePopover.style.removeProperty( 'top' );
+				postDatePopover.style.removeProperty( 'left' );
+			}
+		};
+		const applyPickerValue = function () {
+			if ( ! postDatePicker.value ) {
+				postDateValue.value = '';
+				postDate.value = '';
+				postDate.setCustomValidity( '' );
+				return;
+			}
+
+			const selectedDateTime = postDatePicker.value;
+			const time = selectedDateTime.slice( 11 ).length === 5 ? selectedDateTime + ':00' : selectedDateTime;
+
+			postDateValue.value = time;
+			postDate.value = time.replace( 'T', ' ' );
+			postDate.setCustomValidity( '' );
+		};
+		const syncPickerFromInput = function () {
+			const match = postDate.value.trim().match( /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}(?::\d{2})?))?$/ );
+
+			if ( ! match ) {
+				postDateValue.value = '';
+				if ( '' === postDate.value.trim() ) {
+					postDatePicker.value = '';
+					postDate.setCustomValidity( '' );
+				} else {
+					postDate.setCustomValidity( postDate.dataset.ftmziInvalidMessage || '' );
+				}
+				return;
+			}
+
+			const selectedTime = match[ 2 ] || '00:00:00';
+			postDatePicker.value = match[ 1 ] + 'T' + ( selectedTime.length === 5 ? selectedTime + ':00' : selectedTime );
+			applyPickerValue();
+		};
+		const setCurrentPostDate = function () {
+			const now = new Date();
+
+			postDatePicker.value = now.getFullYear() + '-' + formatDatePart( now.getMonth() + 1 ) + '-' + formatDatePart( now.getDate() ) + 'T' + formatDatePart( now.getHours() ) + ':' + formatDatePart( now.getMinutes() ) + ':' + formatDatePart( now.getSeconds() );
+			applyPickerValue();
+		};
+		const clearPostDate = function () {
+			postDate.value = '';
+			postDatePicker.value = '';
+			postDateValue.value = '';
+			setPopoverOpen( false );
+			if ( postDateToggle ) {
+				postDateToggle.focus();
+			}
+		};
+
+		postDate.addEventListener( 'change', syncPickerFromInput );
+		postDate.addEventListener( 'focus', function () {
+			syncPickerFromInput();
+			setPopoverOpen( true );
+		} );
+		postDatePicker.addEventListener( 'change', applyPickerValue );
+		if ( postDateToggle ) {
+			postDateToggle.addEventListener( 'click', function () {
+				if ( ! postDatePopover ) {
+					return;
+				}
+
+				syncPickerFromInput();
+				setPopoverOpen( ! postDatePopover.classList.contains( 'is-open' ) );
+			} );
+		}
+		if ( postDateNow ) {
+			postDateNow.addEventListener( 'click', setCurrentPostDate );
+		}
+		if ( postDateClear ) {
+			postDateClear.addEventListener( 'click', clearPostDate );
+		}
+		if ( postDateClose ) {
+			postDateClose.addEventListener( 'click', function () {
+				applyPickerValue();
+				setPopoverOpen( false );
+				if ( postDateToggle ) {
+					postDateToggle.focus();
+				}
+			} );
+		}
+		document.addEventListener( 'click', function ( event ) {
+			if ( postDatePopover && postDatePopover.classList.contains( 'is-open' ) && ! event.target.closest( '[data-ftmzi-date-picker]' ) ) {
+				setPopoverOpen( false );
+			}
+		} );
+		window.addEventListener( 'resize', function () {
+			if ( postDatePopover && postDatePopover.classList.contains( 'is-open' ) ) {
+				setPopoverOpen( true );
+			}
+		} );
+		document.addEventListener( 'scroll', function () {
+			if ( postDatePopover && postDatePopover.classList.contains( 'is-open' ) ) {
+				setPopoverOpen( true );
+			}
+		}, true );
+		postDate.addEventListener( 'keydown', function ( event ) {
+			if ( 'Escape' === event.key ) {
+				setPopoverOpen( false );
+				postDate.blur();
+			}
+		} );
+		syncPickerFromInput();
+	}
 
 	if ( postPasswordToggle && postPassword ) {
 		const updatePostPassword = function () {

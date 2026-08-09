@@ -400,6 +400,27 @@ msgstr "The post date format is invalid."
 msgid "留空时，ZIP 内的每篇 Markdown 使用压缩包记录的最后修改时间；可手动精确到秒。"
 msgstr "Leave blank to use each Markdown document's ZIP modification time; set an exact manual time when needed."
 
+msgid "请使用 YYYY-MM-DD HH:MM:SS 格式。"
+msgstr "Use the YYYY-MM-DD HH:MM:SS format."
+
+msgid "选择发布日期"
+msgstr "Choose publication date"
+
+msgid "日期"
+msgstr "Date"
+
+msgid "时间"
+msgstr "Time"
+
+msgid "当前时间"
+msgstr "Current time"
+
+msgid "清空"
+msgstr "Clear"
+
+msgid "完成"
+msgstr "Done"
+
 msgid "可见性"
 msgstr "Visibility"
 
