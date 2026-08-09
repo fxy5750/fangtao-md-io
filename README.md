@@ -9,6 +9,7 @@ Fangtao MD IO is a WordPress plugin for moving content between Markdown files an
 
 - Supported Markdown file extensions (case-insensitive): .md, .markdown, .mdown, .mkdn, .mkd, .mdwn, .mdtxt, .mdtext, .文本, and .txt.
 - Import ZIP archives containing multiple Markdown documents.
+- Queue multiple selected files in the browser and import them one at a time to avoid a single oversized upload request.
 - Select which safe image, video, audio, and PDF extensions may be imported from ZIP packages.
 - Upload referenced local assets to the WordPress Media Library and replace their relative paths with attachment URLs.
 - Use the first imported local image as the featured image when no featured image is specified.
@@ -265,6 +266,43 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.9.10
+
+- Added persistent import statistics and recent import logs.
+- Added an Advanced action that clears only import statistics and logs after confirmation.
+
+### 1.9.9
+
+- Added a clear selected files button to the Markdown and ZIP upload field.
+
+### 1.9.8
+
+- Refined the import donut chart with percentage callouts, a horizontal legend, and segment highlighting on hover or keyboard focus.
+
+### 1.9.7
+
+- Replaced the import statistics bar with a live color-coded donut chart and processed total.
+
+### 1.9.6
+
+- Restored visible dropdown arrows for plugin select fields in light and dark admin themes.
+
+### 1.9.5
+
+- Refined the Markdown import and export interfaces with a shared full-width workspace, clearer form sections, improved controls, and responsive export cards.
+
+### 1.9.4
+
+- Reworked the batch import sidebar with a visible import statistics dashboard, color-coded result bar, per-file task progress, and reset control.
+
+### 1.9.3
+
+- Kept the import queue visible, expanded the desktop layout, and protected the import form from being compressed on narrower admin screens.
+
+### 1.9.2
+
+- Added a sequential browser upload queue for multiple Markdown and ZIP files, with per-file progress, success, skip, and failure feedback.
 
 ### 1.9.1
 

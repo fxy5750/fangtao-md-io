@@ -4,6 +4,9 @@ msgstr "Project-Id-Version: Fangtao MD IO 1.9.0\nContent-Type: text/plain; chars
 msgid "%1$s：%2$s"
 msgstr ""
 
+msgid "已处理"
+msgstr ""
+
 msgid "Extra 风格"
 msgstr ""
 
@@ -422,4 +425,91 @@ msgid "私密文章不能同时设置访问密码。"
 msgstr ""
 
 msgid "私密文章不能使用访问密码；密码未设置时文章保持无密码访问。"
+msgstr ""
+
+msgid "分批导入状态"
+msgstr ""
+
+msgid "等待开始导入。"
+msgstr ""
+
+msgid "正在准备 %d 个文件。"
+msgstr ""
+
+msgid "正在导入：%s"
+msgstr ""
+
+msgid "已导入 %d 篇内容。"
+msgstr ""
+
+msgid "已导入 %1$d 篇内容，失败 %2$d 篇。"
+msgstr ""
+
+msgid "已跳过：压缩包内未找到受支持的 Markdown 文件。"
+msgstr ""
+
+msgid "导入失败：%s"
+msgstr ""
+
+msgid "请求失败，请检查网络或服务器日志。"
+msgstr ""
+
+msgid "导入完成：成功 %1$d 篇，失败 %2$d 个文件，跳过 %3$d 个文件。"
+msgstr ""
+
+msgid "正在分批导入…"
+msgstr ""
+
+msgid "导入统计"
+msgstr ""
+
+msgid "刷新导入统计"
+msgstr ""
+
+msgid "导入成功"
+msgstr ""
+
+msgid "导入失败"
+msgstr ""
+
+msgid "无效内容"
+msgstr ""
+
+msgid "分批导入任务"
+msgstr ""
+
+msgid "等待处理"
+msgstr ""
+
+msgid "处理中"
+msgstr ""
+
+msgid "清空所选文件"
+msgstr ""
+
+msgid "确定要清除所有导入统计和日志吗？此操作不会删除文章、媒体文件或设置。"
+msgstr ""
+
+msgid "暂无导入日志。"
+msgstr ""
+
+msgid "部分导入"
+msgstr ""
+
+msgid "最近导入日志"
+msgstr ""
+
+msgid "保存最近 100 条"
+msgstr ""
+
+msgid "导入统计日志已清除。"
+msgstr ""
+
+msgid "高级功能"
+msgstr ""
+
+msgid "清除统计日志"
+msgstr ""
+
+msgid "仅清除本插件的导入统计与最近记录，不会删除文章、媒体文件或导入设置。"
 msgstr ""

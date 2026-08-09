@@ -423,3 +423,93 @@ msgstr "Private posts cannot use an access password at the same time."
 
 msgid "私密文章不能使用访问密码；密码未设置时文章保持无密码访问。"
 msgstr "Private posts cannot use an access password. When no password is set, the post remains accessible without a password."
+
+msgid "分批导入状态"
+msgstr "Batch import status"
+
+msgid "等待开始导入。"
+msgstr "Waiting to start import."
+
+msgid "正在准备 %d 个文件。"
+msgstr "Preparing %d files."
+
+msgid "正在导入：%s"
+msgstr "Importing: %s"
+
+msgid "已导入 %d 篇内容。"
+msgstr "Imported %d content items."
+
+msgid "已导入 %1$d 篇内容，失败 %2$d 篇。"
+msgstr "Imported %1$d content items; %2$d failed."
+
+msgid "已跳过：压缩包内未找到受支持的 Markdown 文件。"
+msgstr "Skipped: no supported Markdown document was found in the archive."
+
+msgid "导入失败：%s"
+msgstr "Import failed: %s"
+
+msgid "请求失败，请检查网络或服务器日志。"
+msgstr "Request failed. Check the network connection or server log."
+
+msgid "导入完成：成功 %1$d 篇，失败 %2$d 个文件，跳过 %3$d 个文件。"
+msgstr "Import complete: %1$d created, %2$d files failed, %3$d files skipped."
+
+msgid "正在分批导入…"
+msgstr "Importing in batches…"
+
+msgid "导入统计"
+msgstr "Import statistics"
+
+msgid "刷新导入统计"
+msgstr "Refresh import statistics"
+
+msgid "导入成功"
+msgstr "Import successful"
+
+msgid "导入失败"
+msgstr "Import failed"
+
+msgid "无效内容"
+msgstr "Invalid content"
+
+msgid "分批导入任务"
+msgstr "Batch import tasks"
+
+msgid "等待处理"
+msgstr "Waiting"
+
+msgid "处理中"
+msgstr "Processing"
+
+msgid "已处理"
+msgstr "Processed"
+
+msgid "清空所选文件"
+msgstr "Clear selected files"
+
+msgid "确定要清除所有导入统计和日志吗？此操作不会删除文章、媒体文件或设置。"
+msgstr "Clear all import statistics and logs? This will not delete posts, media files, or settings."
+
+msgid "暂无导入日志。"
+msgstr "No import logs yet."
+
+msgid "部分导入"
+msgstr "Partially imported"
+
+msgid "最近导入日志"
+msgstr "Recent import logs"
+
+msgid "保存最近 100 条"
+msgstr "Stores the latest 100 entries"
+
+msgid "导入统计日志已清除。"
+msgstr "Import statistics and logs have been cleared."
+
+msgid "高级功能"
+msgstr "Advanced"
+
+msgid "清除统计日志"
+msgstr "Clear statistics and logs"
+
+msgid "仅清除本插件的导入统计与最近记录，不会删除文章、媒体文件或导入设置。"
+msgstr "Only clears this plugin's import statistics and recent records. Posts, media files, and import settings are not deleted."
