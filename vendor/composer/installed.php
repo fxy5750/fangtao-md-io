@@ -3,11 +3,11 @@
         'name' => 'fangtao/md-io',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '2579b82c47677c45849159a3a2410773da0af3c6',
+        'reference' => '7e844269b5c453c0200a12e2db5484ecfa110607',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => false,
+        'dev' => true,
     ),
     'versions' => array(
         'cebe/markdown' => array(
@@ -29,9 +29,9 @@
             'dev_requirement' => false,
         ),
         'erusev/parsedown-extra' => array(
-            'pretty_version' => '0.8.1',
-            'version' => '0.8.1.0',
-            'reference' => '91ac3ff98f0cea243bdccc688df43810f044dcef',
+            'pretty_version' => '0.9.0',
+            'version' => '0.9.0.0',
+            'reference' => '5b5b9b9d000792c7ac631aec23a6688e0b6d3dc5',
             'type' => 'library',
             'install_path' => __DIR__ . '/../erusev/parsedown-extra',
             'aliases' => array(),
@@ -40,7 +40,7 @@
         'fangtao/md-io' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2579b82c47677c45849159a3a2410773da0af3c6',
+            'reference' => '7e844269b5c453c0200a12e2db5484ecfa110607',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

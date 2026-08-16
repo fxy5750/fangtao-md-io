@@ -43,7 +43,7 @@ Fangtao MD IO 是一款用于在 Markdown 文件与 WordPress 之间迁移内容
 
 ## 语言适配
 
-Fangtao MD IO 会自动跟随 WordPress 当前站点语言或当前用户的后台语言。中文是默认源语言，插件内置 `en_US` 英文翻译包；其他语言可基于 `languages/fangtao-md-io.pot` 创建翻译文件，无需修改插件代码。
+Fangtao MD IO 使用英文作为源码原文，并自动跟随 WordPress 当前站点语言或当前用户的后台语言。社区翻译通过 [translate.wordpress.org](https://translate.wordpress.org/) 管理和分发。
 
 ## 安装方法
 
@@ -267,6 +267,17 @@ HTML 转 Markdown 需要 PHP DOM 扩展。创建 ZIP 时需要 PHP ZIP，或者 
 不会。每个 Markdown 文档都会创建一篇新内容。
 
 ## 更新记录
+
+### 1.9.17
+
+- 分批导入完成后清空已选择的 Markdown 与 ZIP 文件，避免误触导致重复导入，同时保留任务结果和日志。
+
+### 1.9.16
+
+- 将 Parsedown Extra 升级到 0.9.0。
+- 删除 ZIP 解压流程中未使用的 WordPress 核心文件引用。
+- 将可翻译源码原文迁移为英文，以接入 WordPress.org 语言包。
+- 修正 WordPress.org Contributors 用户名。
 
 ### 1.9.15
 

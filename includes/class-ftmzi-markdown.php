@@ -22,27 +22,27 @@ final class FTMZI_Markdown {
 		return array(
 			'parsedown'          => array(
 				'label'  => 'Parsedown',
-				'flavor' => __( 'GitHub 风格', 'fangtao-md-io' ),
+				'flavor' => __( 'GitHub style', 'fangtao-md-io' ),
 				'class'  => 'Parsedown',
 			),
 			'parsedown_extra'    => array(
 				'label'  => 'Parsedown Extra',
-				'flavor' => __( 'Extra 风格', 'fangtao-md-io' ),
+				'flavor' => __( 'Extra style', 'fangtao-md-io' ),
 				'class'  => 'ParsedownExtra',
 			),
 			'cebe_markdown'      => array(
 				'label'  => 'Cebe Markdown',
-				'flavor' => __( '传统风格', 'fangtao-md-io' ),
+				'flavor' => __( 'Traditional style', 'fangtao-md-io' ),
 				'class'  => 'cebe\\markdown\\Markdown',
 			),
 			'cebe_github'        => array(
 				'label'  => 'Cebe Markdown GitHub',
-				'flavor' => __( 'GitHub 风格', 'fangtao-md-io' ),
+				'flavor' => __( 'GitHub style', 'fangtao-md-io' ),
 				'class'  => 'cebe\\markdown\\GithubMarkdown',
 			),
 			'cebe_extra'         => array(
 				'label'  => 'Cebe Markdown Extra',
-				'flavor' => __( 'Extra 风格', 'fangtao-md-io' ),
+				'flavor' => __( 'Extra style', 'fangtao-md-io' ),
 				'class'  => 'cebe\\markdown\\MarkdownExtra',
 			),
 		);
@@ -93,7 +93,7 @@ final class FTMZI_Markdown {
 				'ftmzi_markdown_dependency',
 				sprintf(
 					/* translators: %s: parser name. */
-					__( 'Markdown 解析组件未安装：%s。请重新安装本插件。', 'fangtao-md-io' ),
+					__( 'Markdown parser component is missing: %s. Please reinstall this plugin.', 'fangtao-md-io' ),
 					$parsers[ $parser ]['label']
 				)
 			);
@@ -136,7 +136,7 @@ final class FTMZI_Markdown {
 				'ftmzi_markdown_conversion',
 				sprintf(
 					/* translators: %s: parser error. */
-					__( 'Markdown 转换失败：%s', 'fangtao-md-io' ),
+					__( 'Markdown conversion failed: %s', 'fangtao-md-io' ),
 					$exception->getMessage()
 				)
 			);

@@ -2,31 +2,23 @@
 /**
  * Plugin Name: Fangtao MD IO
  * Description: Import and export Markdown documents, ZIP archives, and local media assets.
- * Version: 1.9.15
+ * Version: 1.9.17
  * Author: Fangtao
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: fangtao-md-io
- * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FTMZI_VERSION', '1.9.15' );
+define( 'FTMZI_VERSION', '1.9.17' );
 define( 'FTMZI_FILE', __FILE__ );
 define( 'FTMZI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FTMZI_URL', plugin_dir_url( __FILE__ ) );
-
-add_action(
-	'init',
-	static function () {
-		load_plugin_textdomain( 'fangtao-md-io', false, dirname( plugin_basename( FTMZI_FILE ) ) . '/languages/' );
-	}
-);
 
 $ftmzi_autoload = FTMZI_DIR . 'vendor/autoload.php';
 
@@ -45,7 +37,7 @@ add_filter(
 		$settings_link = sprintf(
 			'<a href="%1$s">%2$s</a>',
 			esc_url( admin_url( 'admin.php?page=' . FTMZI_Admin::PAGE_SLUG ) ),
-			esc_html__( '设置', 'fangtao-md-io' )
+			esc_html__( 'Settings', 'fangtao-md-io' )
 		);
 
 		array_unshift( $links, $settings_link );

@@ -1,9 +1,9 @@
 === Fangtao MD IO ===
-Contributors: fangtao
+Contributors: fxy5750
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.9.15
+Stable tag: 1.9.17
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -59,7 +59,7 @@ media/
 
 Bulk exports place every item in a separate directory with the same internal structure.
 
-For complete English documentation, see `docs/README.md`.
+For complete English documentation, see `README.md`.
 For Simplified Chinese documentation, see `docs/README.zh-CN.md`.
 
 Parsedown, Parsedown Extra, and cebe/markdown are bundled under the MIT License.
@@ -120,6 +120,17 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.9.17 =
+
+* Clear the selected Markdown and ZIP files after a queued batch finishes, preventing accidental duplicate imports while preserving task results and logs.
+
+= 1.9.16 =
+
+* Updated Parsedown Extra to 0.9.0.
+* Removed an unused WordPress core include from ZIP extraction.
+* Switched translatable source strings to English for WordPress.org language packs.
+* Corrected the WordPress.org contributor username.
 
 = 1.9.15 =
 

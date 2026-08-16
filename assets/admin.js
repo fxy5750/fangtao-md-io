@@ -532,6 +532,10 @@
 			}
 
 			setQueueSummary( formatString( strings.completed, [ result.created, result.failed, result.skipped ] ) );
+			if ( fileInput ) {
+				fileInput.value = '';
+				updateFileClearButton();
+			}
 			setFormDisabled( false );
 			if ( resetButton ) {
 				resetButton.disabled = false;

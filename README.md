@@ -42,7 +42,7 @@ Import limits follow the effective PHP and WordPress upload limit by default. Ad
 
 ## Languages
 
-Fangtao MD IO follows the active WordPress site or user language automatically. Chinese is the default source language, and an `en_US` translation is bundled with the plugin. Translators can use `languages/fangtao-md-io.pot` to create additional locale files without changing plugin code.
+Fangtao MD IO uses English source strings and follows the active WordPress site or user language automatically. Community translations are managed and delivered through [translate.wordpress.org](https://translate.wordpress.org/).
 
 ## Installation
 
@@ -266,6 +266,17 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.9.17
+
+- Clear selected Markdown and ZIP files after a queued batch finishes, preventing accidental duplicate imports while preserving task results and logs.
+
+### 1.9.16
+
+- Updated Parsedown Extra to 0.9.0.
+- Removed an unused WordPress core include from ZIP extraction.
+- Switched translatable source strings to English for WordPress.org language packs.
+- Corrected the WordPress.org contributor username.
 
 ### 1.9.15
 

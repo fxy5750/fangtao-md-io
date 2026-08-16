@@ -185,7 +185,7 @@ final class FTMZI_Importer {
 		if ( ! wp_mkdir_p( $temp_dir ) ) {
 			return new WP_Error(
 				'ftmzi_temp_directory',
-				__( '无法创建临时解压目录，请检查 PHP 临时目录权限。', 'fangtao-md-io' )
+				__( 'Could not create a temporary extraction directory. Check PHP temporary directory permissions.', 'fangtao-md-io' )
 			);
 		}
 
@@ -251,7 +251,7 @@ final class FTMZI_Importer {
 			foreach ( $document['warnings'] as $warning ) {
 				$results['warnings'][] = sprintf(
 					/* translators: 1: Markdown filename, 2: warning. */
-					__( '%1$s：%2$s', 'fangtao-md-io' ),
+					__( '%1$s: %2$s', 'fangtao-md-io' ),
 					$markdown_path,
 					$warning
 				);
@@ -271,7 +271,7 @@ final class FTMZI_Importer {
 		if ( empty( $upload['tmp_name'] ) || ! isset( $upload['error'], $upload['size'], $upload['name'] ) ) {
 			return new WP_Error(
 				'ftmzi_missing_upload',
-				__( '请选择一个 Markdown 或 ZIP 文件。', 'fangtao-md-io' )
+				__( 'Please choose a Markdown or ZIP file.', 'fangtao-md-io' )
 			);
 		}
 
@@ -280,7 +280,7 @@ final class FTMZI_Importer {
 				'ftmzi_upload_error',
 				sprintf(
 					/* translators: %d: PHP upload error code. */
-					__( '文件上传失败，错误代码：%d。', 'fangtao-md-io' ),
+					__( 'File upload failed with error code: %d.', 'fangtao-md-io' ),
 					(int) $upload['error']
 				)
 			);
@@ -291,7 +291,7 @@ final class FTMZI_Importer {
 		if ( 'zip' !== $extension && ! in_array( $extension, self::DOCUMENT_EXTENSIONS, true ) ) {
 			return new WP_Error(
 				'ftmzi_upload_extension',
-				__( '仅支持 Markdown 文本文件和 .zip 文件。', 'fangtao-md-io' )
+				__( 'Only Markdown text files and .zip files are supported.', 'fangtao-md-io' )
 			);
 		}
 
@@ -303,8 +303,8 @@ final class FTMZI_Importer {
 			return new WP_Error(
 				'ftmzi_upload_size',
 				'zip' === $extension
-					? sprintf( __( 'ZIP 文件不能超过 %s。', 'fangtao-md-io' ), size_format( $size_limit ) )
-					: sprintf( __( 'Markdown 文件不能超过 %s。', 'fangtao-md-io' ), size_format( $size_limit ) )
+					? sprintf( __( 'ZIP files cannot exceed %s.', 'fangtao-md-io' ), size_format( $size_limit ) )
+					: sprintf( __( 'Markdown files cannot exceed %s.', 'fangtao-md-io' ), size_format( $size_limit ) )
 			);
 		}
 
@@ -341,7 +341,7 @@ final class FTMZI_Importer {
 		if ( true !== $open ) {
 			return new WP_Error(
 				'ftmzi_invalid_archive',
-				__( '无法打开 ZIP 文件，文件可能已损坏或不是有效压缩包。', 'fangtao-md-io' )
+				__( 'Could not open the ZIP file. It may be damaged or invalid.', 'fangtao-md-io' )
 			);
 		}
 
@@ -350,7 +350,7 @@ final class FTMZI_Importer {
 
 			return new WP_Error(
 				'ftmzi_archive_entries',
-				sprintf( __( 'ZIP 内文件数量不能超过 %d 个。', 'fangtao-md-io' ), $limits['archive_entries'] )
+				sprintf( __( 'The ZIP cannot contain more than %d files.', 'fangtao-md-io' ), $limits['archive_entries'] )
 			);
 		}
 
@@ -382,7 +382,7 @@ final class FTMZI_Importer {
 
 				return new WP_Error(
 					'ftmzi_unsafe_path',
-					__( 'ZIP 包含不安全的文件路径，导入已停止。', 'fangtao-md-io' )
+					__( 'The ZIP contains an unsafe file path. Import stopped.', 'fangtao-md-io' )
 				);
 			}
 
@@ -391,7 +391,7 @@ final class FTMZI_Importer {
 
 				return new WP_Error(
 					'ftmzi_archive_symlink',
-					__( 'ZIP 包含符号链接，导入已停止。', 'fangtao-md-io' )
+					__( 'The ZIP contains a symbolic link. Import stopped.', 'fangtao-md-io' )
 				);
 			}
 
@@ -411,7 +411,7 @@ final class FTMZI_Importer {
 					'ftmzi_entry_size',
 					sprintf(
 						/* translators: %s: archive path. */
-						__( '文件过大，无法导入：%s', 'fangtao-md-io' ),
+						__( 'File is too large to import: %s', 'fangtao-md-io' ),
 						$archive_path
 					)
 				);
@@ -424,7 +424,7 @@ final class FTMZI_Importer {
 
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
+					sprintf( __( 'The total extracted ZIP content cannot exceed %s.', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 
@@ -435,7 +435,7 @@ final class FTMZI_Importer {
 
 				return new WP_Error(
 					'ftmzi_extract_directory',
-					__( '无法创建 ZIP 子目录。', 'fangtao-md-io' )
+					__( 'Could not create a ZIP subdirectory.', 'fangtao-md-io' )
 				);
 			}
 
@@ -456,7 +456,7 @@ final class FTMZI_Importer {
 					'ftmzi_extract_file',
 					sprintf(
 						/* translators: %s: archive path. */
-						__( '无法解压文件：%s', 'fangtao-md-io' ),
+						__( 'Could not extract file: %s', 'fangtao-md-io' ),
 						$archive_path
 					)
 				);
@@ -474,7 +474,7 @@ final class FTMZI_Importer {
 					'ftmzi_entry_size',
 					sprintf(
 						/* translators: %s: archive path. */
-						__( '文件过大，无法导入：%s', 'fangtao-md-io' ),
+						__( 'File is too large to import: %s', 'fangtao-md-io' ),
 						$archive_path
 					)
 				);
@@ -488,7 +488,7 @@ final class FTMZI_Importer {
 
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
+					sprintf( __( 'The total extracted ZIP content cannot exceed %s.', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 
@@ -509,7 +509,7 @@ final class FTMZI_Importer {
 		if ( empty( $markdown_files ) ) {
 			return new WP_Error(
 				'ftmzi_no_markdown',
-				__( 'ZIP 中没有找到支持的 Markdown 文本文件。', 'fangtao-md-io' )
+				__( 'No supported Markdown text file was found in the ZIP.', 'fangtao-md-io' )
 			);
 		}
 
@@ -529,7 +529,6 @@ final class FTMZI_Importer {
 	 */
 	private function extract_archive_wordpress( $zip_path, $temp_dir ) {
 		$limits = self::get_limits();
-		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
 
 		$zip     = new PclZip( $zip_path );
@@ -538,14 +537,14 @@ final class FTMZI_Importer {
 		if ( ! is_array( $entries ) || empty( $entries ) ) {
 			return new WP_Error(
 				'ftmzi_invalid_archive',
-				__( '无法打开 ZIP 文件，文件可能已损坏或不是有效压缩包。', 'fangtao-md-io' )
+				__( 'Could not open the ZIP file. It may be damaged or invalid.', 'fangtao-md-io' )
 			);
 		}
 
 		if ( count( $entries ) > $limits['archive_entries'] ) {
 			return new WP_Error(
 				'ftmzi_archive_entries',
-				sprintf( __( 'ZIP 内文件数量不能超过 %d 个。', 'fangtao-md-io' ), $limits['archive_entries'] )
+				sprintf( __( 'The ZIP cannot contain more than %d files.', 'fangtao-md-io' ), $limits['archive_entries'] )
 			);
 		}
 
@@ -573,7 +572,7 @@ final class FTMZI_Importer {
 			if ( false === $archive_path || $archive_path !== ltrim( $original_path, './' ) ) {
 				return new WP_Error(
 					'ftmzi_unsafe_path',
-					__( 'ZIP 包含不安全的文件路径，导入已停止。', 'fangtao-md-io' )
+					__( 'The ZIP contains an unsafe file path. Import stopped.', 'fangtao-md-io' )
 				);
 			}
 
@@ -583,7 +582,7 @@ final class FTMZI_Importer {
 			) {
 				return new WP_Error(
 					'ftmzi_archive_symlink',
-					__( 'ZIP 包含符号链接，导入已停止。', 'fangtao-md-io' )
+					__( 'The ZIP contains a symbolic link. Import stopped.', 'fangtao-md-io' )
 				);
 			}
 
@@ -601,7 +600,7 @@ final class FTMZI_Importer {
 					'ftmzi_entry_size',
 					sprintf(
 						/* translators: %s: archive path. */
-						__( '文件过大，无法导入：%s', 'fangtao-md-io' ),
+						__( 'File is too large to import: %s', 'fangtao-md-io' ),
 						$archive_path
 					)
 				);
@@ -612,7 +611,7 @@ final class FTMZI_Importer {
 			if ( $total_size > $limits['extracted_size'] ) {
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
+					sprintf( __( 'The total extracted ZIP content cannot exceed %s.', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 
@@ -631,7 +630,7 @@ final class FTMZI_Importer {
 		if ( empty( $markdown_files ) ) {
 			return new WP_Error(
 				'ftmzi_no_markdown',
-				__( 'ZIP 中没有找到支持的 Markdown 文本文件。', 'fangtao-md-io' )
+				__( 'No supported Markdown text file was found in the ZIP.', 'fangtao-md-io' )
 			);
 		}
 
@@ -647,7 +646,7 @@ final class FTMZI_Importer {
 				'ftmzi_extract_file',
 				sprintf(
 					/* translators: %s: PclZip error. */
-					__( 'WordPress 无法解压 ZIP：%s', 'fangtao-md-io' ),
+					__( 'WordPress could not extract the ZIP: %s', 'fangtao-md-io' ),
 					$zip->errorInfo( true )
 				)
 			);
@@ -661,7 +660,7 @@ final class FTMZI_Importer {
 					'ftmzi_extract_file',
 					sprintf(
 						/* translators: %s: archive path. */
-						__( '无法解压文件：%s', 'fangtao-md-io' ),
+						__( 'Could not extract file: %s', 'fangtao-md-io' ),
 						$archive_path
 					)
 				);
@@ -676,7 +675,7 @@ final class FTMZI_Importer {
 					'ftmzi_entry_size',
 					sprintf(
 						/* translators: %s: archive path. */
-						__( '文件过大，无法导入：%s', 'fangtao-md-io' ),
+						__( 'File is too large to import: %s', 'fangtao-md-io' ),
 						$archive_path
 					)
 				);
@@ -687,7 +686,7 @@ final class FTMZI_Importer {
 			if ( $actual_total > $limits['extracted_size'] ) {
 				return new WP_Error(
 					'ftmzi_extracted_size',
-					sprintf( __( 'ZIP 解压后的文件总量不能超过 %s。', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
+					sprintf( __( 'The total extracted ZIP content cannot exceed %s.', 'fangtao-md-io' ), size_format( $limits['extracted_size'] ) )
 				);
 			}
 		}
@@ -720,7 +719,7 @@ final class FTMZI_Importer {
 		if ( empty( $files[ $markdown_path ] ) || ! is_readable( $files[ $markdown_path ] ) ) {
 			return new WP_Error(
 				'ftmzi_read_markdown',
-				__( '无法读取 Markdown 文件。', 'fangtao-md-io' )
+				__( 'Could not read the Markdown file.', 'fangtao-md-io' )
 			);
 		}
 
@@ -729,7 +728,7 @@ final class FTMZI_Importer {
 		if ( false === $source ) {
 			return new WP_Error(
 				'ftmzi_read_markdown',
-				__( '无法读取 Markdown 文件。', 'fangtao-md-io' )
+				__( 'Could not read the Markdown file.', 'fangtao-md-io' )
 			);
 		}
 
@@ -781,7 +780,7 @@ final class FTMZI_Importer {
 				$post_data['post_date']     = $date->format( 'Y-m-d H:i:s' );
 				$post_data['post_date_gmt'] = get_gmt_from_date( $post_data['post_date'] );
 			} else {
-				$warnings[] = __( 'Front Matter 中的 date 无法识别，已使用当前时间。', 'fangtao-md-io' );
+				$warnings[] = __( 'The Front Matter date could not be recognized. The current time was used.', 'fangtao-md-io' );
 			}
 		}
 
@@ -861,7 +860,7 @@ final class FTMZI_Importer {
 			$featured = $existing_attachment_id
 				? array( 'id' => $existing_attachment_id, 'url' => wp_get_attachment_url( $existing_attachment_id ) )
 				: ( $this->is_remote_http_reference( $featured_reference )
-					? ( $import_remote_images ? $this->import_remote_image_reference( $featured_reference, $post_id, '' ) : new WP_Error( 'ftmzi_remote_image_disabled', __( '特色图片为远程地址，但远程图片导入尚未开启。', 'fangtao-md-io' ) ) )
+					? ( $import_remote_images ? $this->import_remote_image_reference( $featured_reference, $post_id, '' ) : new WP_Error( 'ftmzi_remote_image_disabled', __( 'The featured image is remote, but remote image importing is not enabled.', 'fangtao-md-io' ) ) )
 					: $this->import_image_reference( $featured_reference, $markdown_path, $files, $post_id, '' ) );
 
 			if ( is_wp_error( $featured ) ) {
@@ -1047,7 +1046,7 @@ final class FTMZI_Importer {
 				'ftmzi_missing_asset',
 				sprintf(
 					/* translators: %s: asset reference. */
-					__( '未在导入文件中找到素材：%s', 'fangtao-md-io' ),
+					__( 'Asset was not found in the imported files: %s', 'fangtao-md-io' ),
 					sanitize_text_field( $reference )
 				)
 			);
@@ -1068,7 +1067,7 @@ final class FTMZI_Importer {
 				'ftmzi_prepare_asset',
 				sprintf(
 					/* translators: %s: asset path. */
-					__( '无法准备素材：%s', 'fangtao-md-io' ),
+					__( 'Could not prepare the asset: %s', 'fangtao-md-io' ),
 					$resolved
 				)
 			);
@@ -1095,7 +1094,7 @@ final class FTMZI_Importer {
 				'ftmzi_media_import',
 				sprintf(
 					/* translators: 1: asset path, 2: media import error. */
-					__( '素材导入失败（%1$s）：%2$s', 'fangtao-md-io' ),
+					__( 'Asset import failed (%1$s): %2$s', 'fangtao-md-io' ),
 					$resolved,
 					$exception->getMessage()
 				)
@@ -1125,7 +1124,7 @@ final class FTMZI_Importer {
 		if ( ! $url ) {
 			return new WP_Error(
 				'ftmzi_attachment_url',
-				__( '素材已入库，但无法获取媒体 URL。', 'fangtao-md-io' )
+				__( 'The asset was added to the Media Library, but its URL could not be retrieved.', 'fangtao-md-io' )
 			);
 		}
 
@@ -1155,7 +1154,7 @@ final class FTMZI_Importer {
 		}
 
 		if ( ! wp_http_validate_url( $url ) ) {
-			return new WP_Error( 'ftmzi_remote_image_url', __( '远程图片地址不安全或无效。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_remote_image_url', __( 'The remote image address is unsafe or invalid.', 'fangtao-md-io' ) );
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -1165,7 +1164,7 @@ final class FTMZI_Importer {
 		$temp_file = wp_tempnam( 'ftmzi-remote-image' );
 
 		if ( ! $temp_file ) {
-			return new WP_Error( 'ftmzi_remote_image_temp', __( '无法创建远程图片临时文件。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_remote_image_temp', __( 'Could not create a temporary file for the remote image.', 'fangtao-md-io' ) );
 		}
 
 		$response = wp_safe_remote_get(
@@ -1183,7 +1182,7 @@ final class FTMZI_Importer {
 				? $response->get_error_message()
 				: sprintf(
 					/* translators: %d: HTTP response code. */
-					__( 'HTTP 状态码 %d', 'fangtao-md-io' ),
+					__( 'HTTP status code %d', 'fangtao-md-io' ),
 					wp_remote_retrieve_response_code( $response )
 				);
 			@unlink( $temp_file );
@@ -1192,7 +1191,7 @@ final class FTMZI_Importer {
 				'ftmzi_remote_image_download',
 				sprintf(
 					/* translators: 1: image URL, 2: download error. */
-					__( '远程图片下载失败（%1$s）：%2$s', 'fangtao-md-io' ),
+					__( 'Remote image download failed (%1$s): %2$s', 'fangtao-md-io' ),
 					$url,
 					$error_message
 				)
@@ -1205,7 +1204,7 @@ final class FTMZI_Importer {
 			@unlink( $temp_file );
 			return new WP_Error(
 				'ftmzi_remote_image_size',
-				sprintf( __( '远程图片超过 %s 限制。', 'fangtao-md-io' ), size_format( $limits['asset_size'] ) )
+				sprintf( __( 'The remote image exceeds the %s limit.', 'fangtao-md-io' ), size_format( $limits['asset_size'] ) )
 			);
 		}
 
@@ -1220,12 +1219,12 @@ final class FTMZI_Importer {
 
 		if ( ! isset( $extensions[ $mime ] ) ) {
 			@unlink( $temp_file );
-			return new WP_Error( 'ftmzi_remote_image_type', __( '远程文件不是受支持的图片格式。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_remote_image_type', __( 'The remote file is not a supported image format.', 'fangtao-md-io' ) );
 		}
 
 		if ( ! in_array( $extensions[ $mime ], self::get_allowed_asset_extensions(), true ) ) {
 			@unlink( $temp_file );
-			return new WP_Error( 'ftmzi_remote_image_extension', __( '远程图片格式未在导入设置中启用。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_remote_image_extension', __( 'The remote image format is not enabled in Import Settings.', 'fangtao-md-io' ) );
 		}
 
 		$url_path = wp_parse_url( $url, PHP_URL_PATH );
@@ -1272,7 +1271,7 @@ final class FTMZI_Importer {
 		$attachment_url = wp_get_attachment_url( $attachment_id );
 
 		if ( ! $attachment_url ) {
-			return new WP_Error( 'ftmzi_remote_attachment_url', __( '远程图片已入库，但无法获取媒体 URL。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_remote_attachment_url', __( 'The remote image was added to the Media Library, but its URL could not be retrieved.', 'fangtao-md-io' ) );
 		}
 
 		$this->media_cache[ $cache_key ] = array(
@@ -1307,13 +1306,13 @@ final class FTMZI_Importer {
 		$file = get_attached_file( $attachment_id );
 
 		if ( ! $file || ! is_readable( $file ) ) {
-			return new WP_Error( 'ftmzi_attachment_file', __( '图片已入库，但无法读取本地文件。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_attachment_file', __( 'The image was added to the Media Library, but its local file could not be read.', 'fangtao-md-io' ) );
 		}
 
 		$metadata = wp_generate_attachment_metadata( $attachment_id, $file );
 
 		if ( ! is_array( $metadata ) || empty( $metadata['file'] ) ) {
-			return new WP_Error( 'ftmzi_attachment_metadata', __( '图片处理未完成，未保存到媒体库。', 'fangtao-md-io' ) );
+			return new WP_Error( 'ftmzi_attachment_metadata', __( 'Image processing did not complete, so the image was not saved to the Media Library.', 'fangtao-md-io' ) );
 		}
 
 		wp_update_attachment_metadata( $attachment_id, $metadata );
