@@ -65,6 +65,7 @@ final class FTMZI_Admin {
 		add_action( 'admin_post_ftmzi_filtered_export', array( $this, 'handle_filtered_export' ) );
 		add_action( 'admin_post_ftmzi_save_settings', array( $this, 'handle_save_settings' ) );
 		add_action( 'admin_post_ftmzi_clear_import_log', array( $this, 'handle_clear_import_log' ) );
+		add_action( 'admin_post_ftmzi_export_diagnostic_log', array( $this, 'handle_export_diagnostic_log' ) );
 		add_action( 'admin_init', array( $this, 'register_export_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_menu_icon_assets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
@@ -402,9 +403,14 @@ final class FTMZI_Admin {
 		);
 
 		foreach ( $uploads as $upload ) {
-			$file_name    = sanitize_file_name( wp_basename( (string) $upload['name'] ) );
+			$started_at    = microtime( true );
+			$file_name     = sanitize_file_name( wp_basename( (string) $upload['name'] ) );
 			$import_result = $importer->import( $upload, $options['post_type'], $options['post_status'], $options['category_id'], $import_remote_images, $options['markdown_parser'], $options['post_date'], $options['post_password'] );
-			$this->record_import_log( $file_name, $import_result );
+			$this->record_import_log(
+				$file_name,
+				$import_result,
+				$this->get_import_log_context( $upload, $options, 'form', $import_remote_images, $started_at )
+			);
 
 			if ( is_wp_error( $import_result ) ) {
 				if ( 'ftmzi_no_markdown' === $import_result->get_error_code() ) {
@@ -453,20 +459,26 @@ final class FTMZI_Admin {
 			wp_send_json_error( array( 'message' => __( 'Please choose a Markdown or ZIP file.', 'fangtao-md-io' ) ), 400 );
 		}
 
-		$upload        = $uploads[0];
-		$file_name     = sanitize_file_name( wp_basename( (string) $upload['name'] ) );
-		$importer      = new FTMZI_Importer();
-		$import_result = $importer->import(
+		$upload               = $uploads[0];
+		$file_name            = sanitize_file_name( wp_basename( (string) $upload['name'] ) );
+		$importer             = new FTMZI_Importer();
+		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
+		$started_at           = microtime( true );
+		$import_result        = $importer->import(
 			$upload,
 			$options['post_type'],
 			$options['post_status'],
 			$options['category_id'],
-			(bool) get_option( self::REMOTE_IMAGES_OPTION, false ),
+			$import_remote_images,
 			$options['markdown_parser'],
 			$options['post_date'],
 			$options['post_password']
 		);
-		$this->record_import_log( $file_name, $import_result );
+		$this->record_import_log(
+			$file_name,
+			$import_result,
+			$this->get_import_log_context( $upload, $options, 'batch', $import_remote_images, $started_at )
+		);
 
 		if ( is_wp_error( $import_result ) ) {
 			wp_send_json_success(
@@ -632,6 +644,7 @@ final class FTMZI_Admin {
 			? FTMZI_Markdown::sanitize_parser( wp_unslash( $_POST['default_markdown_parser'] ) )
 			: FTMZI_Markdown::DEFAULT_PARSER;
 		$import_remote_images = isset( $_POST['import_remote_images'] ) ? 1 : 0;
+		$ignore_xmp_metadata  = isset( $_POST['ignore_xmp_metadata'] ) ? 1 : 0;
 		$asset_extensions     = isset( $_POST['allowed_asset_extensions'] )
 			? FTMZI_Importer::sanitize_asset_extensions( wp_unslash( $_POST['allowed_asset_extensions'] ) )
 			: array();
@@ -649,6 +662,7 @@ final class FTMZI_Admin {
 		update_option( self::DEFAULT_STATUS_OPTION, $default_status, false );
 		update_option( self::DEFAULT_PARSER_OPTION, $default_parser, false );
 		update_option( self::REMOTE_IMAGES_OPTION, $import_remote_images, false );
+		update_option( FTMZI_Importer::IGNORE_XMP_METADATA_OPTION, $ignore_xmp_metadata, false );
 		update_option( FTMZI_Importer::ALLOWED_ASSET_EXTENSIONS_OPTION, $asset_extensions, false );
 
 		foreach ( $size_options as $option_name => $field_name ) {
@@ -693,29 +707,72 @@ final class FTMZI_Admin {
 	}
 
 	/**
+	 * Download a privacy-conscious diagnostic report for import troubleshooting.
+	 *
+	 * @return void
+	 */
+	public function handle_export_diagnostic_log() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to view diagnostic information.', 'fangtao-md-io' ) );
+		}
+
+		check_admin_referer( 'ftmzi_export_diagnostic_log', 'ftmzi_diagnostic_nonce' );
+
+		$report = wp_json_encode(
+			$this->get_diagnostic_report(),
+			JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+		);
+
+		if ( false === $report ) {
+			wp_die( esc_html__( 'The diagnostic report could not be generated.', 'fangtao-md-io' ) );
+		}
+
+		$filename = 'fangtao-md-io-diagnostics-' . wp_date( 'Ymd-His' ) . '.json';
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		header( 'Content-Length: ' . strlen( $report ) );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download is encoded above and is not rendered as HTML.
+		echo $report;
+		exit;
+	}
+
+	/**
 	 * Record a completed import without retaining imported content or media data.
 	 *
 	 * @param string         $file_name     Submitted filename.
 	 * @param array|WP_Error $import_result Import result.
+	 * @param array          $context       Sanitized request context.
 	 * @return void
 	 */
-	private function record_import_log( $file_name, $import_result ) {
-		$status  = 'success';
-		$created = 0;
-		$failed  = 0;
-		$message = '';
+	private function record_import_log( $file_name, $import_result, $context = array() ) {
+		$status        = 'success';
+		$created       = 0;
+		$failed        = 0;
+		$message       = '';
+		$error_code    = '';
+		$warning_count = 0;
+		$first_warning = '';
 
 		if ( is_wp_error( $import_result ) ) {
-			$status  = 'ftmzi_no_markdown' === $import_result->get_error_code() ? 'skipped' : 'failed';
-			$failed  = 'failed' === $status ? 1 : 0;
-			$message = $import_result->get_error_message();
+			$status     = 'ftmzi_no_markdown' === $import_result->get_error_code() ? 'skipped' : 'failed';
+			$failed     = 'failed' === $status ? 1 : 0;
+			$message    = $import_result->get_error_message();
+			$error_code = sanitize_key( $import_result->get_error_code() );
 		} else {
-			$created = ! empty( $import_result['created'] ) ? count( $import_result['created'] ) : 0;
-			$failed  = ! empty( $import_result['failed'] ) ? count( $import_result['failed'] ) : 0;
-			$status  = $failed ? ( $created ? 'partial' : 'failed' ) : 'success';
+			$created       = ! empty( $import_result['created'] ) ? count( $import_result['created'] ) : 0;
+			$failed        = ! empty( $import_result['failed'] ) ? count( $import_result['failed'] ) : 0;
+			$status        = $failed ? ( $created ? 'partial' : 'failed' ) : 'success';
+			$warning_count = ! empty( $import_result['warnings'] ) ? count( $import_result['warnings'] ) : 0;
 
 			if ( $failed && ! empty( $import_result['failed'][0]['message'] ) ) {
-				$message = $import_result['failed'][0]['message'];
+				$message    = $import_result['failed'][0]['message'];
+				$error_code = ! empty( $import_result['failed'][0]['code'] ) ? sanitize_key( $import_result['failed'][0]['code'] ) : '';
+			}
+
+			if ( $warning_count ) {
+				$warning       = is_array( $import_result['warnings'][0] ) ? $import_result['warnings'][0] : array( 'message' => $import_result['warnings'][0] );
+				$first_warning = isset( $warning['message'] ) ? $warning['message'] : '';
 			}
 		}
 
@@ -723,12 +780,17 @@ final class FTMZI_Admin {
 		array_unshift(
 			$logs,
 			array(
-				'file'    => sanitize_file_name( (string) $file_name ),
-				'status'  => $status,
-				'created' => $created,
-				'failed'  => $failed,
-				'message' => substr( sanitize_text_field( wp_strip_all_tags( (string) $message ) ), 0, 240 ),
-				'time'    => current_time( 'mysql' ),
+				'file'           => sanitize_file_name( (string) $file_name ),
+				'status'         => $status,
+				'created'        => $created,
+				'failed'         => $failed,
+				'error_code'     => $error_code,
+				'message'        => $this->redact_diagnostic_text( $message ),
+				'warning_count'  => $warning_count,
+				'first_warning'  => $this->redact_diagnostic_text( $first_warning ),
+				'context'        => $this->sanitize_diagnostic_context( $context ),
+				'plugin_version' => FTMZI_VERSION,
+				'time'           => current_time( 'mysql' ),
 			)
 		);
 
@@ -756,16 +818,212 @@ final class FTMZI_Admin {
 			}
 
 			$normalized[] = array(
-				'file'    => sanitize_file_name( (string) $log['file'] ),
-				'status'  => $log['status'],
-				'created' => absint( isset( $log['created'] ) ? $log['created'] : 0 ),
-				'failed'  => absint( isset( $log['failed'] ) ? $log['failed'] : 0 ),
-				'message' => sanitize_text_field( isset( $log['message'] ) ? $log['message'] : '' ),
-				'time'    => sanitize_text_field( isset( $log['time'] ) ? $log['time'] : '' ),
+				'file'           => sanitize_file_name( (string) $log['file'] ),
+				'status'         => $log['status'],
+				'created'        => absint( isset( $log['created'] ) ? $log['created'] : 0 ),
+				'failed'         => absint( isset( $log['failed'] ) ? $log['failed'] : 0 ),
+				'error_code'     => sanitize_key( isset( $log['error_code'] ) ? $log['error_code'] : '' ),
+				'message'        => $this->redact_diagnostic_text( isset( $log['message'] ) ? $log['message'] : '' ),
+				'warning_count'  => absint( isset( $log['warning_count'] ) ? $log['warning_count'] : 0 ),
+				'first_warning'  => $this->redact_diagnostic_text( isset( $log['first_warning'] ) ? $log['first_warning'] : '' ),
+				'context'        => $this->sanitize_diagnostic_context( isset( $log['context'] ) ? $log['context'] : array() ),
+				'plugin_version' => sanitize_text_field( isset( $log['plugin_version'] ) ? $log['plugin_version'] : '' ),
+				'time'           => sanitize_text_field( isset( $log['time'] ) ? $log['time'] : '' ),
 			);
 		}
 
 		return $normalized;
+	}
+
+	/**
+	 * Build non-sensitive context for one completed import attempt.
+	 *
+	 * @param array  $upload               Uploaded file metadata.
+	 * @param array  $options              Validated import options.
+	 * @param string $request_mode         Import request mode.
+	 * @param bool   $import_remote_images Whether remote images are imported.
+	 * @param float  $started_at           Request start time.
+	 * @return array<string, mixed>
+	 */
+	private function get_import_log_context( $upload, $options, $request_mode, $import_remote_images, $started_at ) {
+		return array(
+			'file_size'            => isset( $upload['size'] ) ? absint( $upload['size'] ) : 0,
+			'upload_error'         => isset( $upload['error'] ) ? absint( $upload['error'] ) : UPLOAD_ERR_NO_FILE,
+			'extension'            => sanitize_key( pathinfo( isset( $upload['name'] ) ? (string) $upload['name'] : '', PATHINFO_EXTENSION ) ),
+			'request_mode'         => 'batch' === $request_mode ? 'batch' : 'form',
+			'post_type'            => sanitize_key( isset( $options['post_type'] ) ? $options['post_type'] : '' ),
+			'post_status'          => sanitize_key( isset( $options['post_status'] ) ? $options['post_status'] : '' ),
+			'markdown_parser'      => sanitize_key( isset( $options['markdown_parser'] ) ? $options['markdown_parser'] : '' ),
+			'import_remote_images' => (bool) $import_remote_images,
+			'ignore_xmp_metadata'  => (bool) get_option( FTMZI_Importer::IGNORE_XMP_METADATA_OPTION, false ),
+			'duration_ms'          => max( 0, (int) round( ( microtime( true ) - (float) $started_at ) * 1000 ) ),
+		);
+	}
+
+	/**
+	 * Keep only the known, non-sensitive diagnostic context keys.
+	 *
+	 * @param mixed $context Context data.
+	 * @return array<string, mixed>
+	 */
+	private function sanitize_diagnostic_context( $context ) {
+		if ( ! is_array( $context ) || empty( $context ) ) {
+			return array();
+		}
+
+		return array(
+			'file_size'            => absint( isset( $context['file_size'] ) ? $context['file_size'] : 0 ),
+			'upload_error'         => absint( isset( $context['upload_error'] ) ? $context['upload_error'] : 0 ),
+			'extension'            => sanitize_key( isset( $context['extension'] ) ? $context['extension'] : '' ),
+			'request_mode'         => 'batch' === ( isset( $context['request_mode'] ) ? $context['request_mode'] : '' ) ? 'batch' : 'form',
+			'post_type'            => sanitize_key( isset( $context['post_type'] ) ? $context['post_type'] : '' ),
+			'post_status'          => sanitize_key( isset( $context['post_status'] ) ? $context['post_status'] : '' ),
+			'markdown_parser'      => sanitize_key( isset( $context['markdown_parser'] ) ? $context['markdown_parser'] : '' ),
+			'import_remote_images' => ! empty( $context['import_remote_images'] ),
+			'ignore_xmp_metadata'  => ! empty( $context['ignore_xmp_metadata'] ),
+			'duration_ms'          => absint( isset( $context['duration_ms'] ) ? $context['duration_ms'] : 0 ),
+		);
+	}
+
+	/**
+	 * Build a diagnostic report without secrets, site URLs, content, or paths.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function get_diagnostic_report() {
+		global $wp_version;
+
+		$uploads = wp_upload_dir();
+		$limits  = FTMZI_Importer::get_limits();
+		$theme   = wp_get_theme();
+
+		return array(
+			'report'       => array(
+				'schema_version'   => 1,
+				'generated_at_utc' => gmdate( 'c' ),
+				'privacy'          => 'Excludes passwords, credentials, post content, site URLs, and absolute filesystem paths. Filenames and sanitized import messages are included.',
+			),
+			'plugin'       => array(
+				'name'    => 'Fangtao MD IO',
+				'version' => FTMZI_VERSION,
+			),
+			'wordpress'    => array(
+				'version'         => sanitize_text_field( $wp_version ),
+				'locale'          => function_exists( 'determine_locale' ) ? determine_locale() : get_locale(),
+				'timezone'        => wp_timezone_string(),
+				'multisite'       => is_multisite(),
+				'debug'           => defined( 'WP_DEBUG' ) && WP_DEBUG,
+				'max_upload_size' => (int) wp_max_upload_size(),
+			),
+			'php'          => array(
+				'version'             => PHP_VERSION,
+				'sapi'                => PHP_SAPI,
+				'os_family'           => PHP_OS_FAMILY,
+				'file_uploads'        => (bool) filter_var( ini_get( 'file_uploads' ), FILTER_VALIDATE_BOOLEAN ),
+				'memory_limit'        => sanitize_text_field( (string) ini_get( 'memory_limit' ) ),
+				'post_max_size'        => sanitize_text_field( (string) ini_get( 'post_max_size' ) ),
+				'upload_max_filesize' => sanitize_text_field( (string) ini_get( 'upload_max_filesize' ) ),
+				'max_file_uploads'    => absint( ini_get( 'max_file_uploads' ) ),
+				'max_execution_time'  => absint( ini_get( 'max_execution_time' ) ),
+				'max_input_time'      => (int) ini_get( 'max_input_time' ),
+			),
+			'capabilities' => array(
+				'zip_backend'       => class_exists( 'ZipArchive' ) ? 'ZipArchive' : 'PclZip',
+				'zip_ready'         => class_exists( 'ZipArchive' ) || ( file_exists( ABSPATH . 'wp-admin/includes/class-pclzip.php' ) && extension_loaded( 'zlib' ) ),
+				'ziparchive'        => class_exists( 'ZipArchive' ),
+				'wordpress_pclzip'  => file_exists( ABSPATH . 'wp-admin/includes/class-pclzip.php' ),
+				'zlib'              => extension_loaded( 'zlib' ),
+				'mbstring'          => extension_loaded( 'mbstring' ),
+				'dom'               => extension_loaded( 'dom' ),
+				'fileinfo'          => extension_loaded( 'fileinfo' ),
+			),
+			'storage'      => array(
+				'uploads_available' => empty( $uploads['error'] ),
+				'uploads_exists'    => empty( $uploads['basedir'] ) ? false : is_dir( $uploads['basedir'] ),
+				'uploads_writable'  => empty( $uploads['basedir'] ) ? false : wp_is_writable( $uploads['basedir'] ),
+				'temp_exists'       => is_dir( get_temp_dir() ),
+				'temp_writable'     => wp_is_writable( get_temp_dir() ),
+			),
+			'import'       => array(
+				'default_status'       => sanitize_key( get_option( self::DEFAULT_STATUS_OPTION, 'draft' ) ),
+				'default_parser'       => sanitize_key( get_option( self::DEFAULT_PARSER_OPTION, FTMZI_Markdown::DEFAULT_PARSER ) ),
+				'import_remote_images' => (bool) get_option( self::REMOTE_IMAGES_OPTION, false ),
+				'ignore_xmp_metadata'  => (bool) get_option( FTMZI_Importer::IGNORE_XMP_METADATA_OPTION, false ),
+				'asset_extensions'     => FTMZI_Importer::get_allowed_asset_extensions(),
+				'limits'               => array_map( 'absint', $limits ),
+			),
+			'theme'        => array(
+				'slug'    => sanitize_key( $theme->get_stylesheet() ),
+				'version' => sanitize_text_field( $theme->get( 'Version' ) ),
+			),
+			'active_plugins' => $this->get_active_plugin_diagnostics(),
+			'import_logs'    => $this->get_import_logs(),
+		);
+	}
+
+	/**
+	 * Return active plugin slugs and versions for compatibility diagnosis.
+	 *
+	 * @return array<int, array{plugin:string,version:string}>
+	 */
+	private function get_active_plugin_diagnostics() {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$installed = get_plugins();
+		$network_active = (array) get_site_option( 'active_sitewide_plugins', array() );
+		$active = array_unique(
+			array_merge(
+				(array) get_option( 'active_plugins', array() ),
+				array_keys( $network_active )
+			)
+		);
+		$result = array();
+
+		foreach ( $active as $plugin_file ) {
+			$plugin_file = plugin_basename( (string) $plugin_file );
+			$result[]    = array(
+				'plugin'  => sanitize_text_field( $plugin_file ),
+				'version' => isset( $installed[ $plugin_file ]['Version'] ) ? sanitize_text_field( $installed[ $plugin_file ]['Version'] ) : '',
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Remove paths and URLs from diagnostic messages.
+	 *
+	 * @param mixed $message Diagnostic message.
+	 * @return string
+	 */
+	private function redact_diagnostic_text( $message ) {
+		$message = sanitize_text_field( wp_strip_all_tags( (string) $message ) );
+		$paths   = array_filter(
+			array(
+				defined( 'ABSPATH' ) ? ABSPATH : '',
+				defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : '',
+				defined( 'WP_PLUGIN_DIR' ) ? WP_PLUGIN_DIR : '',
+				get_temp_dir(),
+			)
+		);
+
+		foreach ( $paths as $path ) {
+			$message = str_ireplace( array( $path, wp_normalize_path( $path ) ), '[redacted-path]/', $message );
+		}
+
+		$message = (string) preg_replace( '#https?://[^\s<]+#i', '[redacted-url]', $message );
+
+		if ( strlen( $message ) > 500 ) {
+			$message = substr( $message, 0, 500 );
+
+			while ( '' !== $message && '' === wp_check_invalid_utf8( $message ) ) {
+				$message = substr( $message, 0, -1 );
+			}
+		}
+
+		return $message;
 	}
 
 	/**
@@ -874,6 +1132,7 @@ final class FTMZI_Admin {
 		$default_status       = get_option( self::DEFAULT_STATUS_OPTION, 'draft' );
 		$default_parser       = FTMZI_Markdown::sanitize_parser( get_option( self::DEFAULT_PARSER_OPTION, FTMZI_Markdown::DEFAULT_PARSER ) );
 		$import_remote_images = (bool) get_option( self::REMOTE_IMAGES_OPTION, false );
+		$ignore_xmp_metadata  = (bool) get_option( FTMZI_Importer::IGNORE_XMP_METADATA_OPTION, false );
 		$asset_groups         = FTMZI_Importer::get_asset_groups();
 		$allowed_assets       = FTMZI_Importer::get_allowed_asset_extensions();
 		$import_limits        = FTMZI_Importer::get_limits();
@@ -1213,6 +1472,14 @@ final class FTMZI_Admin {
 							<p class="description"><?php esc_html_e( 'When enabled, HTTP(S) images in content and featured images are downloaded to the Media Library. Disabled by default.', 'fangtao-md-io' ); ?></p>
 						</div>
 
+						<div class="ftmzi-field ftmzi-field--checkbox">
+							<label for="ftmzi-ignore-xmp-metadata">
+								<input id="ftmzi-ignore-xmp-metadata" name="ignore_xmp_metadata" type="checkbox" value="1"<?php checked( $ignore_xmp_metadata ); ?>>
+								<?php esc_html_e( 'Ignore JPEG XMP metadata', 'fangtao-md-io' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Removes XMP APP1 segments from temporary JPEG copies before Media Library import. Source ZIP files and EXIF metadata are not changed. Disabled by default.', 'fangtao-md-io' ); ?></p>
+						</div>
+
 						<fieldset class="ftmzi-field">
 							<legend><?php esc_html_e( 'ZIP asset formats', 'fangtao-md-io' ); ?></legend>
 							<p class="description"><?php esc_html_e( 'Only selected safe media formats are extracted and imported. Unselected files are ignored, and executable formats such as PHP are never allowed.', 'fangtao-md-io' ); ?></p>
@@ -1283,10 +1550,7 @@ final class FTMZI_Admin {
 						<?php submit_button( __( 'Save Settings', 'fangtao-md-io' ), 'secondary', 'submit', false ); ?>
 					</form>
 
-					<form class="ftmzi-card ftmzi-card--advanced" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" data-ftmzi-clear-import-log-form>
-						<input type="hidden" name="action" value="ftmzi_clear_import_log">
-						<?php wp_nonce_field( 'ftmzi_clear_import_log', 'ftmzi_clear_import_log_nonce' ); ?>
-
+					<div class="ftmzi-card ftmzi-card--advanced">
 						<div class="ftmzi-panel-heading">
 							<h2><?php esc_html_e( 'Advanced', 'fangtao-md-io' ); ?></h2>
 						</div>
@@ -1295,9 +1559,24 @@ final class FTMZI_Admin {
 								<h3><?php esc_html_e( 'Clear statistics and logs', 'fangtao-md-io' ); ?></h3>
 								<p class="description"><?php esc_html_e( 'Only clears this plugin\'s import statistics and recent records. Posts, media files, and import settings are not deleted.', 'fangtao-md-io' ); ?></p>
 							</div>
-							<button class="button button-secondary" type="submit"><?php esc_html_e( 'Clear statistics and logs', 'fangtao-md-io' ); ?></button>
+							<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" data-ftmzi-clear-import-log-form>
+								<input type="hidden" name="action" value="ftmzi_clear_import_log">
+								<?php wp_nonce_field( 'ftmzi_clear_import_log', 'ftmzi_clear_import_log_nonce' ); ?>
+								<button class="button button-secondary" type="submit"><?php esc_html_e( 'Clear statistics and logs', 'fangtao-md-io' ); ?></button>
+							</form>
 						</div>
-					</form>
+						<div class="ftmzi-advanced-action">
+							<div>
+								<h3><?php esc_html_e( 'Export diagnostic log', 'fangtao-md-io' ); ?></h3>
+								<p class="description"><?php esc_html_e( 'Downloads plugin, server capability, import setting, active plugin, and recent import log data as JSON. Passwords, credentials, post content, site URLs, and absolute filesystem paths are excluded. Review filenames and sanitized error messages before sharing.', 'fangtao-md-io' ); ?></p>
+							</div>
+							<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
+								<input type="hidden" name="action" value="ftmzi_export_diagnostic_log">
+								<?php wp_nonce_field( 'ftmzi_export_diagnostic_log', 'ftmzi_diagnostic_nonce' ); ?>
+								<button class="button button-secondary" type="submit"><?php esc_html_e( 'Download diagnostic log', 'fangtao-md-io' ); ?></button>
+							</form>
+						</div>
+					</div>
 				<?php endif; ?>
 		</div>
 		<?php

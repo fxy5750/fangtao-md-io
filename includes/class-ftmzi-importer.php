@@ -20,6 +20,7 @@ final class FTMZI_Importer {
 	const MAX_MARKDOWN_SIZE_OPTION         = 'ftmzi_max_markdown_size_mb';
 	const MAX_ASSET_SIZE_OPTION            = 'ftmzi_max_asset_size_mb';
 	const MAX_ARCHIVE_ENTRIES_OPTION       = 'ftmzi_max_archive_entries';
+	const IGNORE_XMP_METADATA_OPTION       = 'ftmzi_ignore_xmp_metadata';
 
 	/**
 	 * Markdown helper.
@@ -737,6 +738,7 @@ final class FTMZI_Importer {
 		$meta         = $front_matter['meta'];
 		$title        = ! empty( $meta['title'] ) ? $meta['title'] : $heading['title'];
 		$title        = $title ? $title : pathinfo( basename( $markdown_path ), PATHINFO_FILENAME );
+		$title        = $this->decode_title_entities( $title );
 		$excerpt      = '';
 
 		if ( ! empty( $meta['excerpt'] ) ) {
@@ -806,6 +808,12 @@ final class FTMZI_Importer {
 			$first_attachment_id,
 			$import_remote_images
 		);
+
+		if ( is_wp_error( $markdown_content ) ) {
+			$this->delete_failed_import( $post_id );
+			return $markdown_content;
+		}
+
 		$markdown_content    = $this->replace_asset_references(
 			$markdown_content,
 			$markdown_path,
@@ -816,7 +824,7 @@ final class FTMZI_Importer {
 		$html                = $this->markdown->convert( $markdown_content, $markdown_parser );
 
 		if ( is_wp_error( $html ) ) {
-			wp_delete_post( $post_id, true );
+			$this->delete_failed_import( $post_id );
 			return $html;
 		}
 
@@ -831,7 +839,7 @@ final class FTMZI_Importer {
 		);
 
 		if ( is_wp_error( $updated ) ) {
-			wp_delete_post( $post_id, true );
+			$this->delete_failed_import( $post_id );
 			return $updated;
 		}
 
@@ -885,6 +893,28 @@ final class FTMZI_Importer {
 	}
 
 	/**
+	 * Decode nested HTML entities commonly found in exported filenames.
+	 *
+	 * @param string $title Imported title.
+	 * @return string
+	 */
+	private function decode_title_entities( $title ) {
+		$title = (string) $title;
+
+		for ( $pass = 0; $pass < 4; $pass++ ) {
+			$decoded = html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
+			if ( $decoded === $title ) {
+				break;
+			}
+
+			$title = $decoded;
+		}
+
+		return $title;
+	}
+
+	/**
 	 * Replace local Markdown image references with media-library URLs.
 	 *
 	 * @param string $markdown            Markdown source.
@@ -893,15 +923,16 @@ final class FTMZI_Importer {
 	 * @param int    $post_id             Parent post ID.
 	 * @param array  $warnings            Import warnings.
 	 * @param int    $first_attachment_id First imported attachment ID.
-	 * @return string
+	 * @return string|WP_Error
 	 */
 	private function replace_image_references( $markdown, $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images ) {
-		$pattern = '/!\[([^\]]*)\]\(\s*(?:<([^>]+)>|([^\s\)]+))(?:\s+((["\']).*?\5))?\s*\)/u';
+		$pattern        = '/!\[([^\]]*)\]\(\s*(?:<([^>]+)>|([^\s\)]+))(?:\s+((["\']).*?\5))?\s*\)/u';
 		$allowed_assets = self::get_allowed_asset_extensions();
+		$import_error   = null;
 
-		return preg_replace_callback(
+		$result = preg_replace_callback(
 			$pattern,
-			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, $import_remote_images, $allowed_assets ) {
+			function ( $matches ) use ( $markdown_path, $files, $post_id, &$warnings, &$first_attachment_id, &$import_error, $import_remote_images, $allowed_assets ) {
 				$alt       = isset( $matches[1] ) ? sanitize_text_field( $matches[1] ) : '';
 				$reference = ! empty( $matches[2] ) ? $matches[2] : $matches[3];
 
@@ -919,6 +950,9 @@ final class FTMZI_Importer {
 
 				if ( is_wp_error( $imported ) ) {
 					$warnings[] = $imported->get_error_message();
+					if ( null === $import_error ) {
+						$import_error = $imported;
+					}
 					return $matches[0];
 				}
 
@@ -937,6 +971,46 @@ final class FTMZI_Importer {
 			},
 			$markdown
 		);
+
+		if ( $import_error ) {
+			return $import_error;
+		}
+
+		if ( null === $result ) {
+			return new WP_Error( 'ftmzi_image_reference', __( 'Could not process Markdown image references.', 'fangtao-md-io' ) );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Remove content and attachments created by a failed document import.
+	 *
+	 * @param int $post_id Imported post ID.
+	 * @return void
+	 */
+	private function delete_failed_import( $post_id ) {
+		$attachments = get_posts(
+			array(
+				'post_parent' => $post_id,
+				'post_type'   => 'attachment',
+				'post_status' => 'inherit',
+				'fields'      => 'ids',
+				'numberposts' => -1,
+			)
+		);
+
+		foreach ( $attachments as $attachment_id ) {
+			wp_delete_attachment( $attachment_id, true );
+		}
+
+		foreach ( $this->media_cache as $cache_key => $asset ) {
+			if ( ! empty( $asset['id'] ) && in_array( (int) $asset['id'], $attachments, true ) ) {
+				unset( $this->media_cache[ $cache_key ] );
+			}
+		}
+
+		wp_delete_post( $post_id, true );
 	}
 
 	/**
@@ -1071,6 +1145,13 @@ final class FTMZI_Importer {
 					$resolved
 				)
 			);
+		}
+
+		$xmp_result = $this->maybe_strip_jpeg_xmp_metadata( $temp_file );
+
+		if ( is_wp_error( $xmp_result ) ) {
+			@unlink( $temp_file );
+			return $xmp_result;
 		}
 
 		$file_array = array(
@@ -1231,6 +1312,13 @@ final class FTMZI_Importer {
 		$basename = sanitize_file_name( basename( (string) $url_path ) );
 		$basename = pathinfo( $basename, PATHINFO_FILENAME );
 		$filename   = ( $basename ? $basename : 'remote-image' ) . '.' . $extensions[ $mime ];
+		$xmp_result = $this->maybe_strip_jpeg_xmp_metadata( $temp_file );
+
+		if ( is_wp_error( $xmp_result ) ) {
+			@unlink( $temp_file );
+			return $xmp_result;
+		}
+
 		$file_array = array(
 			'name'     => $filename,
 			'tmp_name' => $temp_file,
@@ -1280,6 +1368,171 @@ final class FTMZI_Importer {
 		);
 
 		return $this->media_cache[ $cache_key ];
+	}
+
+	/**
+	 * Remove JPEG XMP APP1 segments from a temporary import file when enabled.
+	 *
+	 * EXIF APP1 segments and the source archive remain unchanged.
+	 *
+	 * @param string $file_path Temporary image path.
+	 * @return true|WP_Error
+	 */
+	private function maybe_strip_jpeg_xmp_metadata( $file_path ) {
+		if ( ! get_option( self::IGNORE_XMP_METADATA_OPTION, false ) ) {
+			return true;
+		}
+
+		$input = @fopen( $file_path, 'rb' );
+
+		if ( ! $input ) {
+			return new WP_Error( 'ftmzi_xmp_read', __( 'Could not read the temporary JPEG file while removing XMP metadata.', 'fangtao-md-io' ) );
+		}
+
+		$signature = $this->read_stream_bytes( $input, 2 );
+
+		if ( "\xFF\xD8" !== $signature ) {
+			fclose( $input );
+			return true;
+		}
+
+		$output_path = wp_tempnam( 'ftmzi-jpeg-xmp' );
+		$output      = $output_path ? @fopen( $output_path, 'wb' ) : false;
+
+		if ( ! $output ) {
+			fclose( $input );
+			if ( $output_path ) {
+				@unlink( $output_path );
+			}
+			return new WP_Error( 'ftmzi_xmp_temp', __( 'Could not create a temporary JPEG file while removing XMP metadata.', 'fangtao-md-io' ) );
+		}
+
+		fwrite( $output, $signature );
+		$removed = false;
+		$error   = null;
+
+		while ( ! feof( $input ) ) {
+			$prefix = $this->read_stream_bytes( $input, 1 );
+
+			if ( '' === $prefix ) {
+				break;
+			}
+
+			if ( "\xFF" !== $prefix ) {
+				fwrite( $output, $prefix );
+				stream_copy_to_stream( $input, $output );
+				break;
+			}
+
+			$marker_bytes = $prefix;
+			do {
+				$marker = $this->read_stream_bytes( $input, 1 );
+				$marker_bytes .= $marker;
+			} while ( "\xFF" === $marker );
+
+			if ( '' === $marker ) {
+				$error = new WP_Error( 'ftmzi_xmp_invalid_jpeg', __( 'The temporary JPEG file ended unexpectedly while removing XMP metadata.', 'fangtao-md-io' ) );
+				break;
+			}
+
+			$marker_code = ord( $marker );
+
+			if ( 0xDA === $marker_code || 0xD9 === $marker_code ) {
+				fwrite( $output, $marker_bytes );
+				stream_copy_to_stream( $input, $output );
+				break;
+			}
+
+			if ( 0x01 === $marker_code || 0xD8 === $marker_code || ( $marker_code >= 0xD0 && $marker_code <= 0xD7 ) ) {
+				fwrite( $output, $marker_bytes );
+				continue;
+			}
+
+			$length_bytes = $this->read_stream_bytes( $input, 2 );
+
+			if ( 2 !== strlen( $length_bytes ) ) {
+				$error = new WP_Error( 'ftmzi_xmp_invalid_jpeg', __( 'The temporary JPEG file contains an invalid metadata segment.', 'fangtao-md-io' ) );
+				break;
+			}
+
+			$length_data = unpack( 'nlength', $length_bytes );
+			$length      = isset( $length_data['length'] ) ? (int) $length_data['length'] : 0;
+
+			if ( $length < 2 ) {
+				$error = new WP_Error( 'ftmzi_xmp_invalid_jpeg', __( 'The temporary JPEG file contains an invalid metadata segment.', 'fangtao-md-io' ) );
+				break;
+			}
+
+			$payload = $this->read_stream_bytes( $input, $length - 2 );
+
+			if ( strlen( $payload ) !== $length - 2 ) {
+				$error = new WP_Error( 'ftmzi_xmp_invalid_jpeg', __( 'The temporary JPEG file ended unexpectedly while removing XMP metadata.', 'fangtao-md-io' ) );
+				break;
+			}
+
+			if ( 0xE1 === $marker_code && $this->is_xmp_app1_payload( $payload ) ) {
+				$removed = true;
+				continue;
+			}
+
+			fwrite( $output, $marker_bytes . $length_bytes . $payload );
+		}
+
+		fclose( $input );
+		fclose( $output );
+
+		if ( $error ) {
+			@unlink( $output_path );
+			return $error;
+		}
+
+		if ( $removed && ! @copy( $output_path, $file_path ) ) {
+			@unlink( $output_path );
+			return new WP_Error( 'ftmzi_xmp_write', __( 'Could not update the temporary JPEG file after removing XMP metadata.', 'fangtao-md-io' ) );
+		}
+
+		@unlink( $output_path );
+		return true;
+	}
+
+	/**
+	 * Read an exact number of bytes from a stream unless EOF is reached.
+	 *
+	 * @param resource $stream Open stream.
+	 * @param int      $length Number of bytes.
+	 * @return string
+	 */
+	private function read_stream_bytes( $stream, $length ) {
+		$data = '';
+
+		while ( strlen( $data ) < $length && ! feof( $stream ) ) {
+			$chunk = fread( $stream, $length - strlen( $data ) );
+
+			if ( false === $chunk || '' === $chunk ) {
+				break;
+			}
+
+			$data .= $chunk;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Determine whether an APP1 payload contains standard or extended XMP data.
+	 *
+	 * @param string $payload APP1 payload.
+	 * @return bool
+	 */
+	private function is_xmp_app1_payload( $payload ) {
+		$standard_header = "http://ns.adobe.com/xap/1.0/\x00";
+		$extended_header = "http://ns.adobe.com/xmp/extension/\x00";
+		$payload_start   = substr( $payload, 0, 512 );
+
+		return 0 === strncmp( $payload, $standard_header, strlen( $standard_header ) )
+			|| 0 === strncmp( $payload, $extended_header, strlen( $extended_header ) )
+			|| false !== strpos( $payload_start, '<x:xmpmeta' )
+			|| false !== strpos( $payload_start, '<?xpacket' );
 	}
 
 	/**

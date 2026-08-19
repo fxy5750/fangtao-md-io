@@ -836,6 +836,17 @@ html[data-arco-theme="dark"] .ftmzi-wrap select:not([multiple]) {
 	gap: 20px;
 }
 
+.ftmzi-advanced-action + .ftmzi-advanced-action {
+	margin-top: 18px;
+	padding-top: 18px;
+	border-top: 1px solid var(--ftmzi-line);
+}
+
+.ftmzi-advanced-action form {
+	flex: 0 0 auto;
+	margin: 0;
+}
+
 .ftmzi-advanced-action h3 {
 	margin: 0;
 	color: var(--ftmzi-ink);

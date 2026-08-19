@@ -3,7 +3,7 @@ Contributors: fxy5750
 Tags: markdown, import, export, migration, media
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.9.17
+Stable tag: 1.9.20
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -31,7 +31,9 @@ Fangtao MD IO provides a focused workflow for moving content between Markdown fi
 * Choose from five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
 * Configure the default parser while retaining a per-import override.
 * Optionally import remote HTTP(S) images through WordPress safe HTTP handling.
+* Optionally remove JPEG XMP metadata from temporary import copies while preserving EXIF and source ZIP files.
 * Import Front Matter titles, slugs, permalinks, excerpts, dates, statuses, passwords, categories, tags, and featured images.
+* Export an administrator-only JSON diagnostic report from Advanced after a failed import. The report excludes passwords, credentials, content, site URLs, and absolute paths.
 
 = Export =
 
@@ -120,6 +122,19 @@ When a detected OSS integration is enabled but has incomplete bucket and credent
 No. Every Markdown document creates a new WordPress content item.
 
 == Changelog ==
+
+= 1.9.20 =
+
+* Added an optional JPEG XMP compatibility setting for servers without the PHP DOM extension.
+
+= 1.9.19 =
+
+* Added an administrator-only JSON diagnostic export with privacy redaction and richer import failure context.
+
+= 1.9.18 =
+
+* Preserve sanitized HTML tables while Markdown parsers remain in safe mode.
+* Stop and roll back a document import when a referenced image cannot be added to the Media Library.
 
 = 1.9.17 =
 

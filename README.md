@@ -18,6 +18,7 @@ Fangtao MD IO is a WordPress plugin for moving content between Markdown files an
 - Choose one of five Markdown parsers covering Traditional, GitHub, and Extra syntax flavors.
 - Configure the default parser while retaining a per-import override.
 - Optionally download remote HTTP(S) images into the WordPress Media Library.
+- Optionally remove XMP APP1 metadata from temporary JPEG import copies while preserving EXIF metadata and source ZIP files.
 - Follow the effective PHP upload limit by default or configure separate ZIP, extracted-content, Markdown, asset, and entry-count limits.
 - Import Front Matter dates, statuses, passwords, permalinks, categories, tags, and Media Library featured image IDs.
 - Export a single post from its row action.
@@ -80,7 +81,9 @@ When multiple ZIP files are imported without a manual publication date, every Ma
 
 Private visibility and password protection are separate WordPress modes, so the import form allows only one of them at a time.
 
-Administrators can set the import form's initial post status and Markdown parser, enable remote image imports, choose allowed ZIP asset formats, and configure import limits under **Import Settings**. A blank or zero size limit follows the current PHP/WordPress upload limit. Remote image importing is disabled by default.
+Administrators can set the import form's initial post status and Markdown parser, enable remote image imports, optionally ignore JPEG XMP metadata, choose allowed ZIP asset formats, and configure import limits under **Import Settings**. A blank or zero size limit follows the current PHP/WordPress upload limit. Remote image importing and XMP removal are disabled by default. XMP removal affects only temporary JPEG copies used during import; EXIF metadata and source ZIP files are unchanged.
+
+After an import failure, reproduce the issue on the current plugin version and open **Advanced > Download diagnostic log**. The administrator-only JSON report includes server capabilities, effective import limits, active plugin versions, and recent import results. It excludes passwords, credentials, post content, site URLs, and absolute filesystem paths. Review included filenames and sanitized error messages before sharing the file.
 
 ### Markdown Parsers
 
@@ -266,6 +269,19 @@ Remote image URLs are preserved by default. An administrator can enable **Automa
 No. Each imported Markdown document creates a new content item.
 
 ## Changelog
+
+### 1.9.20
+
+- Added an optional JPEG XMP compatibility setting for servers without the PHP DOM extension.
+
+### 1.9.19
+
+- Added an administrator-only JSON diagnostic export with privacy redaction and richer import failure context.
+
+### 1.9.18
+
+- Preserve sanitized HTML tables while Markdown parsers remain in safe mode.
+- Stop and roll back a document import when a referenced image cannot be added to the Media Library.
 
 ### 1.9.17
 

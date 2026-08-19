@@ -1,0 +1,7 @@
+/.git/
+/.github/
+/.gitattributes
+/.distignore
+/vendor/bin/
+/vendor/cebe/markdown/bin/
+/vendor/cebe/markdown/tests/

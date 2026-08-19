@@ -85,8 +85,11 @@ final class FTMZI_Markdown {
 	 * @return string|WP_Error
 	 */
 	public function convert( $markdown, $parser = self::DEFAULT_PARSER ) {
-		$parser  = self::sanitize_parser( $parser );
-		$parsers = self::get_parsers();
+		$parser   = self::sanitize_parser( $parser );
+		$parsers  = self::get_parsers();
+		$tables   = array();
+		$markdown = $this->preserve_html_tables( (string) $markdown, $tables );
+		$markdown = $this->normalize_collapsed_tables( $markdown );
 
 		if ( ! class_exists( $parsers[ $parser ]['class'] ) ) {
 			return new WP_Error(
@@ -130,7 +133,13 @@ final class FTMZI_Markdown {
 					break;
 			}
 
-			return wp_kses_post( (string) $html );
+			$html = wp_kses_post( (string) $html );
+
+			foreach ( $tables as $token => $table ) {
+				$html = str_replace( array( '<p>' . $token . '</p>', $token ), $table, $html );
+			}
+
+			return wp_kses_post( $html );
 		} catch ( Throwable $exception ) {
 			return new WP_Error(
 				'ftmzi_markdown_conversion',
@@ -141,6 +150,114 @@ final class FTMZI_Markdown {
 				)
 			);
 		}
+	}
+
+	/**
+	 * Preserve complete HTML tables while Markdown parsers remain in safe mode.
+	 *
+	 * Only table blocks are restored, and WordPress sanitizes them before and
+	 * after Markdown conversion. Other raw HTML remains escaped by the parser.
+	 *
+	 * @param string $markdown Markdown source.
+	 * @param array  $tables   Sanitized table blocks keyed by placeholder.
+	 * @return string
+	 */
+	private function preserve_html_tables( $markdown, &$tables ) {
+		$index = 0;
+
+		return (string) preg_replace_callback(
+			'/<table\b[^>]*>.*?<\/table>/is',
+			static function ( $matches ) use ( &$tables, &$index ) {
+				$token            = 'FTMZIHTMLTABLE' . md5( $matches[0] . '|' . $index ) . 'END';
+				$tables[ $token ] = wp_kses_post( $matches[0] );
+				$index++;
+
+				return "\n\n" . $token . "\n\n";
+			},
+			$markdown
+		);
+	}
+
+	/**
+	 * Restore pipe tables whose rows were collapsed onto one line.
+	 *
+	 * Some document exporters remove the line breaks between Markdown table
+	 * rows. Only lines containing a valid table delimiter row are rebuilt.
+	 *
+	 * @param string $markdown Markdown source.
+	 * @return string
+	 */
+	private function normalize_collapsed_tables( $markdown ) {
+		return (string) preg_replace_callback(
+			'/^[^\r\n]*\|[^\r\n]*$/m',
+			static function ( $matches ) {
+				$line = $matches[0];
+
+				if ( ! preg_match( '/\|\h*:?-{3,}:?(?:\h*\|\h*:?-{3,}:?)+\h*\|/', $line, $delimiter_match, PREG_OFFSET_CAPTURE ) ) {
+					return $line;
+				}
+
+				$delimiter = trim( $delimiter_match[0][0] );
+				$offset    = (int) $delimiter_match[0][1];
+				$header    = trim( substr( $line, 0, $offset ) );
+				$body      = trim( substr( $line, $offset + strlen( $delimiter_match[0][0] ) ) );
+				$columns   = substr_count( $delimiter, '|' ) - 1;
+
+				if ( $columns < 1 || '|' !== substr( $header, 0, 1 ) || '|' !== substr( $header, -1 ) || '|' !== substr( $body, 0, 1 ) || '|' !== substr( $body, -1 ) ) {
+					return $line;
+				}
+
+				$header_cells = preg_split( '/(?<!\\\\)\|/', trim( $header, " \t|" ) );
+
+				if ( false === $header_cells || $columns !== count( $header_cells ) ) {
+					return $line;
+				}
+
+				$body_cells = preg_split( '/(?<!\\\\)\|/', trim( $body, " \t|" ) );
+
+				if ( false === $body_cells ) {
+					return $line;
+				}
+
+				$rows = array();
+				$row  = array();
+
+				foreach ( $body_cells as $cell ) {
+					$cell = trim( $cell );
+
+					if ( $columns === count( $row ) ) {
+						$rows[] = $row;
+						$row    = array();
+
+						if ( '' === $cell ) {
+							continue;
+						}
+					}
+
+					$row[] = $cell;
+				}
+
+				if ( $columns === count( $row ) ) {
+					$rows[] = $row;
+				} elseif ( ! empty( $row ) ) {
+					return $line;
+				}
+
+				if ( empty( $rows ) ) {
+					return $line;
+				}
+
+				$normalized_rows = array_map(
+					static function ( $cells ) {
+						return '| ' . implode( ' | ', $cells ) . ' |';
+					},
+					$rows
+				);
+
+				return $header . "\n" . $delimiter . "\n" . implode( "\n", $normalized_rows );
+			},
+			$markdown
+		);
 	}
 
 	/**
